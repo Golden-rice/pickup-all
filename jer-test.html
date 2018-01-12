@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script src='jer.js'></script>
+	<script src='jer.es6.js'></script>
+</head>
+<body>
+	<div id="div1"></div>
+</body>
+<script>
+	console.log(j('#div1'))
+var $$ = ajQuery = function(selector) {
+  return new ajQuery.prototype.init(selector);
+}
+ajQuery.prototype.init = function(selector){
+	this.selector = selector;
+	return this;
+}
+ajQuery.prototype.say = function(){
+	console.log(this.selector)
+}
+ajQuery.prototype.init.prototype = ajQuery.prototype;
+$$('a').say()
+
+</script>
+</html>
