@@ -24,7 +24,8 @@ jer = function(selector, context){
 
 jer.fn = jer.prototype = {
 	// 显式声明构造函数
-	constructor: jer,
+	// *** 循环引用，内存泄漏？
+	// constructor: jer,
 
 	// 选择器
 	selector: "",
@@ -97,33 +98,26 @@ jer.fn = jer.prototype = {
 	// 根据类名查询 element
 	getElementsByClassName: function(clName, tagName, context){
 		var node, elements, o, i , j ,
-			ret = [],
-			tag = tagName || "*",
-			p   = context || document;
+				ret = [],
+				tag = tagName || "*",
+				p   = context || document.body;
 
 		// 支持getElementByClassName的浏览器
 		if(document.getElementsByClassName){
+
 			node = p.getElementsByClassName(clName);
 			ret  = node;
+
 		}
 		// 不支持的浏览器	
 		else{
-			node = p.getElementsByTagName(tag);
+			for ( i = 0, node = p.getElementsByTagName(tag); i < node.length; i++ ) {
 
-			for (i = 0; i < node.length; i++) {
-				o = node[i].className.split(/\s+/);
-				if(o[0]){
-					for(j = 0; j < o.length; j++){
-						console.log(o[j])
-						if(o[j] == clName){
-							console.log(node[i].className)
-							ret.push(node[i]);
-							break;
-						}
-					}
+				if( node[i].className && (new RegExp(clName)).test(node[i].className) ){
+					ret.push(node[i]);
 				}
-			};
 
+			};
 		}
 		return ret;
 	},
@@ -154,43 +148,58 @@ jer.fn = jer.prototype = {
 		return target;
 	},
 
-	// 利用观察者模式，组建回调函数
-	// *** var clk = $.callBack(type); 根据不同类型生成callback，然后fire执行
-	// *** $.callback 利用事件注册，事件触发组合函数
-	// *** 使用方法是否和jq一致？
-	// option 配置回调函数类型：once,memory(***),unique(*** 缺少duplicate),stopOnFalse
-	event:  function(option){
+
+	// 回调函数
+	callback: function(option){
+		return installEvent( {}, option );
+	},
+
+	// 为对象安装观察者模式 
+  installEvent: function(obj, option){
+  	return this.extend( obj || {}, _event(option) );
+  },
+
+	_event:  function(option){
 		var clientList = {},  // 订阅客户
 		    listen,           // 监听事件
 		    trigger,          // 触发事件
 		    remove;           // 移除事件 
 
-		// *** 默认是不允许添加 两个重复事件的 即unique
-		// *** 如何重复添加？
-		listen = function(key, fn){  // 监听客户端状态
-		    if(!clientList[key]){
+		// 订阅事件，利用key来区别函数组
+		listen = function(key, fn){
+		    if( !clientList[key] ){
 		        clientList[key] = [];
 		    }
-		    clientList[key] = fn;
+
+		    if( option === 'unique' ){
+		    	if( -1 === clientList[key].indexOf(fn) ){
+				    clientList[key].push(fn);
+		    	}
+		    }else{
+		    	clientList[key].push(fn);
+		    }
 		}
 
+		// 触发事件，利用key来出发函数，第二个参数后面的部分座位执行函数的参数
 		trigger = function(){
-		    var key = Array.prototype.shift.call(arguments),
+		    var i, fn,
+		     		key = Array.prototype.shift.call(arguments),
 		        fns = clientList[key];
 		    if(!fns || fns.length === 0){
 		      	return false;
 		    }
-		    for(var i, fn; fn = fns[i++];){
+		    for(; fn = fns[i++];){
 		      	if( fn.apply(this, argumetns) === false && option === 'stopOnFalse'){
 		      		break;
 		      	}
 		    }
-		    // 仅执行一次
+
 		    if( option === 'once' ){
 		    	clientList = {};
 		    }
 		}
 
+		// 移除事件，利用key来区别函数组
 		remove = function(key, fn){
 		    var fns = clientList[key];
 
@@ -215,7 +224,18 @@ jer.fn = jer.prototype = {
 		    remove: remove
 		}
 
-	}
+	},
+
+	// *** 内存泄漏
+	/* ***
+   		循环引用，循环引用自己，DOM插入，闭包（常驻内存中）
+			HTML dom绑定数据，安全性？无意义的标签
+			jQuery.data( element, key, value ) 与 $(ele).data( key, value ); 前者同名key数据缓存不会替换，后者会
+			jQuery.data 存储的数据在内存中以 映射关系与DOM关联，一种是存储在cache中，一种是存储在对象中
+			jquery.expando 关联 DOM 利用id缓存数据
+     *** END
+	 */
+	// *** 
 }
 
 jer.fn.init.prototype = jer.fn;

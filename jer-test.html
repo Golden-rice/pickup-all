@@ -5,24 +5,33 @@
 	<title>Document</title>
 	<script src='jer.js'></script>
 	<script src='jer.es6.js'></script>
+	<script src="http://code.jquery.com/jquery-latest.js"></script>
 </head>
 <body>
 	<div id="div1"></div>
+	<div class="cl1"></div>
+	<div class="cl1"></div>
+	<div class="cl1"></div>
 </body>
 <script>
-	console.log(j('#div1'))
-var $$ = ajQuery = function(selector) {
-  return new ajQuery.prototype.init(selector);
-}
-ajQuery.prototype.init = function(selector){
-	this.selector = selector;
-	return this;
-}
-ajQuery.prototype.say = function(){
-	console.log(this.selector)
-}
-ajQuery.prototype.init.prototype = ajQuery.prototype;
-$$('a').say()
+	console.log(j('#div1'));
+	console.log(j.fn.getElementsByClassName('cl1'));
 
+//1
+var obj = {};
+$.data(obj, 'name', 'aaron');
+console.log($.data(obj, 'name')) 
+
+//2
+var obj = {};
+$.data(obj, {
+  name1: 'aaron1'
+});
+console.log($.data(obj))
+
+//3
+var $body = $("body")
+$body.data("foo", 52);
+console.log($body.data('foo'))
 </script>
 </html>
