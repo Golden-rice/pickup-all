@@ -22,10 +22,8 @@ jer = function(selector, context){
 	return new jer.fn.init(selector, context);
 }
 
-// *** jer.fn 相当于替换掉了 jer.prototype 的位置
 jer.fn = jer.prototype = {
 	// 显式声明构造函数
-	// *** 希望 this 指向 jer
 	constructor: jer,
 
 	// 选择器
@@ -63,31 +61,11 @@ jer.fn = jer.prototype = {
 		 	}
 		}
 
-		// *** 此时 this 指向 jer.prototype.init, __proto__ 指向 jer ，如何让 this 指向 jer.prototype 从而实现链式，其实直接通过 js 本身的原型链就可以实现，init.prototype = jer.prototype
-		// *** 链式会产生阻塞
-		// *** 所有函数返回的均是对象本身，没有返回值，是否存在不适用某些场景？
-
-		/* 返回数据
-			***
-			0~n: 指向dom
-			context：指执行环境
-			prevObject：回溯设计用
-			selector：选择器名
-			length：选择器集合长度
-			*** END
-		 */
 	  return this;
 	},
 
 	// 运行检查: 命名空间
 	_check: function(){
-		// *** 
-		// 解决命名冲突问题
-		// 不能直接在原基础上扩展，因为如果存在名称一样的函数则会发生覆盖
-		// 闭包可以，es6 use strict {} 可以
-		// noConflict(){}
-		// 是否来源于同一个引用地址
-		// *** END
 		if( window.j !== j || window.jer !== jer) {
 			console.log('The library has same namespace in Global!');
 		}
@@ -158,19 +136,16 @@ jer.fn = jer.prototype = {
 			length = arguments.length;
 
 		// 仅一个参数，扩展该对象 
-		// *** 该对象为 jer.prototype 或 jer.init实例 的方法
 		if( i === length ) {
-			target = this;  // 调用上下文 *** jer.prototype 或 jer.init实例
+			target = this;  // 调用上下文 
 			i--;
 		}
 
 		// 多个参数，扩展第一个参数（对象）
 		for (; i < length; i++ ) {
 			if( (options = arguments[i]) != null ){
-				for( name in options ){   // 获取扩展对象的事件 *** 此处仅浅拷贝，即仅能拷贝一层
+				for( name in options ){   // 获取扩展对象的事件 
 					copy = options[name];   // 覆盖拷贝
-					// *** 为何多个 copy? 变量
-					// *** 此处可能存在对 copy 的再处理，例如深层拷贝等
 					target[name] = copy; 
 				}
 			}
@@ -180,12 +155,8 @@ jer.fn = jer.prototype = {
 	}
 }
 
-// *** 将 jer.prototype 与 jer.prototype.init.prototype 同步，此时 init 就能获得 jer 中的方法，即实例方法与静态方法（prototype上的方法）关联
 jer.fn.init.prototype = jer.fn;
 
-// *** jer 仅保留最核心部分，剩下的通过扩展函数新增，可以方便剥离
-// *** 此时扩展的是 jer 而不是 jer.prototype，如果需要扩展 jer ，显式的使用 jer.fn.extend。两者的区别在于，前者是对该对象的扩展，后者扩展的对象的原型，所以所有的实例均能使用该方法
-// *** 写在 jer.fn.init.prototype = jer.fn; 之后是因为 jer 实例是通过 prototype.init 实例的，jer.extend 需要扩展在实例上。
 jer.extend = jer.fn.extend;
 
 window.jer = window.j = jer;
