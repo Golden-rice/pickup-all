@@ -152,6 +152,69 @@ jer.fn = jer.prototype = {
 		};
 
 		return target;
+	},
+
+	// 利用观察者模式，组建回调函数
+	// *** var clk = $.callBack(type); 根据不同类型生成callback，然后fire执行
+	// *** $.callback 利用事件注册，事件触发组合函数
+	// *** 使用方法是否和jq一致？
+	// option 配置回调函数类型：once,memory(***),unique(*** 缺少duplicate),stopOnFalse
+	event:  function(option){
+		var clientList = {},  // 订阅客户
+		    listen,           // 监听事件
+		    trigger,          // 触发事件
+		    remove;           // 移除事件 
+
+		// *** 默认是不允许添加 两个重复事件的 即unique
+		// *** 如何重复添加？
+		listen = function(key, fn){  // 监听客户端状态
+		    if(!clientList[key]){
+		        clientList[key] = [];
+		    }
+		    clientList[key] = fn;
+		}
+
+		trigger = function(){
+		    var key = Array.prototype.shift.call(arguments),
+		        fns = clientList[key];
+		    if(!fns || fns.length === 0){
+		      	return false;
+		    }
+		    for(var i, fn; fn = fns[i++];){
+		      	if( fn.apply(this, argumetns) === false && option === 'stopOnFalse'){
+		      		break;
+		      	}
+		    }
+		    // 仅执行一次
+		    if( option === 'once' ){
+		    	clientList = {};
+		    }
+		}
+
+		remove = function(key, fn){
+		    var fns = clientList[key];
+
+		    if(!fns){
+		      	return false;
+		    }
+		    if(!fn){
+		        fns && (fns.length = 0);
+		    }else{
+		      	for(var l = fns.length - 1; l>=0; l--){
+		        	var _fn = fns[l]
+		        	if(_fn === fn){
+		         		fns.splice(l, 1);
+		        	}
+		      	}
+		    }
+		  }
+
+		return {
+		    listen: listen,
+		    trigger: trigger,
+		    remove: remove
+		}
+
 	}
 }
 
