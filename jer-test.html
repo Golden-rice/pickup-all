@@ -14,24 +14,27 @@
 	<div class="cl1"></div>
 </body>
 <script>
-	console.log(j('.cl1').data());
-	console.log($('.cl1'));
+
+
+	console.log(j('#div1'))
+	console.log($('#div1'));
+	console.log();
 
 //1
-var obj = {};
-$.data(obj, 'name', 'aaron');
-console.log($.data(obj, 'name')) 
+// var obj = {};
+// $.data(obj, 'name', 'aaron');
+// console.log($.data(obj, 'name')) 
 
-//2
-var obj = {};
-$.data(obj, {
-  name1: 'aaron1'
-});
-console.log($.data(obj))
+// //2
+// var obj = {};
+// $.data(obj, {
+//   name1: 'aaron1'
+// });
+// console.log($.data(obj))
 
-//3
-var $body = $("body")
-$body.data("foo", 52);
-console.log($body.data('foo'))
+// //3
+// var $body = $("body")
+// $body.data("foo", 52);
+// console.log($body.data('foo'))
 </script>
 </html>

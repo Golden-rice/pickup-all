@@ -54,8 +54,11 @@ jer.fn = jer.prototype = {
 
 		// 处理查询语句
 		if ( this.isString(selector) ) {
-		 	if ( document.querySelectorAll ){
-		 		// 匹配 element
+			if(/^#(\w+$)/.test(selector) && document.querySelector ){
+				// 匹配 id element
+				elem = document.querySelector(selector);
+			}else if ( document.querySelectorAll ){
+		 		// 匹配 class tagname elements
 		 		elem = document.querySelectorAll(selector);
 		 	} else {
 		 		// 匹配 #id tagName .className
@@ -95,19 +98,22 @@ jer.fn = jer.prototype = {
 
 	// 类型判断
 	isArray: function(dom){
-		return this._isType('Array')(dom)
+		return this._isType('Array')(dom);
 	},
 	isString: function(dom){
-		return this._isType('String')(dom)
+		return this._isType('String')(dom);
 	},
 	isNumber: function(dom){
-		return this._isType('Number')(dom)
+		return this._isType('Number')(dom);
 	},
 	isObject: function(dom){
-		return this._isType('Object')(dom)
+		return this._isType('Object')(dom);
 	},
 	isFunction: function(dom){
-		return this._isType('Function')(dom)
+		return this._isType('Function')(dom);
+	},
+	isUndefined: function(dom){
+		return this._isType('Undefined')(dom);
 	},
 	_isType: function (type){
 	  return function(obj){
@@ -229,6 +235,7 @@ jer.fn.init.prototype = jer.fn;
 jer.extend = jer.fn.extend;
 
 // 观察者模式及函数组合
+// *** 命令行模式：封装复合命令，宏命令
 jer.fn.extend({
 	// 回调函数
 	callback: function(option){
@@ -310,54 +317,153 @@ jer.fn.extend({
 
 // 缓存
 jer.fn.extend({
-	// *** 内存泄漏
-	/* ***
-   		循环引用，循环引用自己，DOM插入，闭包（常驻内存中）
-			HTML dom绑定数据，安全性？无意义的标签
-			jQuery.data( element, key, value ) 与 $(ele).data( key, value ); 前者同名key数据缓存不会替换，后者会
-			jQuery.data 存储的数据在内存中以 映射关系与DOM关联，一种是存储在cache中，一种是存储在对象中
-			jquery.expando 关联 DOM 利用id缓存数据
-
-			Object.defineProperty(obj, 'name', object);
-
-			缓存结构：
-			var cache = {
-			  "uid1": { // DOM节点1缓存数据，
-			    "name1": value1,
-			    "name2": value2
-			  },
-			  "uid2": { // DOM节点2缓存数据，
-			    "name1": value1,
-			    "name2": value2
-			  }
-			  // ......
-			};
-		// 1.8 后被弃用
-		j.data('a') ->get
-		j.data('a','c') ->set
-
-		j().data('a') ->get uid
-		j().data('a',c)
-     *** END
-	 */
-	// *** 
 
   // 缓存
   cache: {},
 
-
   // 生成缓存
 	data: function( name, data ){
-		// elem 是不是独立的
-		console.log(this.elem())
+
+		if( !name ) { return this; }
+
+		var gid  = 'j-BB68835792FC129863D93292CE17E21D',
+				name = name && name.toString(), 
+			  elem = this.elem();
+
+		// 存储在elem中
+		if( elem.length ){
+			// 设置数据
+			if( data ) {
+				return this.setDate( elem, name, data );
+			}
+			// 如果仅有name，则是取数据
+			else{
+				return this.getDate( elem, name );
+			}
+
+		}
+		// 存储在j中
+		else {
+
+			if( data ){
+				if ( !this.cache[this.gid] ) { this.cache[this.gid] = {}; }
+				return this.setDate( this.cache[this.gid], name, data );
+			}
+
+			else{
+				return this.getDate( this.cache[this.gid], name );
+			}
+
+		}
+
+		return this;
 	},
 
-	acceptData: function( elem ){
+	// 获得元素缓存
+	getDate: function( elem, name ){
+
+		if( !name || !elem ) { return this; }
+
+		if( elem[0] ){
+
+			if( elem[0].eid && this.cache[elem[0].eid] ) { 
+				return this.cache[elem[0].eid][name]; 
+			}
+
+		}else{
+			return elem[name];
+		}
+
+
+		return this;
+	},
+
+	// 给元素设置缓存
+	setDate: function( elem, name, data ){
+
+		if( !name || !elem ) { return this; }
+
+		var i = 0,
+				data = data && data.toString(),  
+				id = 'j' + Math.random();
+
+		// 给元素赋值
+		if( elem.length ){
+
+			for(; i < elem.length; i++){
+
+				elem[i].eid = id;
+
+				if( !this.cache[id] ) { this.cache[id] = {}; }
+				this.cache[id][name] = data;
+
+			}
+
+		}
+		// 给全局赋值
+		else{
+			elem[name] = data;
+		}
+
+
+		return this;
+	},
+
+	// 移除元素缓存
+	removeDate: function( elem, name ){
+
+		if( !name ) { return this; }
+
+		var i = 0;
+
+		// 移除元素缓存
+		if( elem.length ){
+
+			for(; i < elem.length; i++){
+
+				delete elem[i].eid;
+
+				if( this.cache[id] ) { 
+					delete this.cache[id][name];
+				}
+
+			}
+
+		}
+		// 移除全局缓存
+		else{
+			delete elem[name];
+		}
+	}
+})
+
+// XMLRequest 工具
+jer.fn.extend({
+	req: function(){
+
+	}
+})
+
+// from free jquery
+// refer: https://github.com/nefe/You-Dont-Need-jQuery/blob/master/README.zh-CN.md#translations
+
+// css 
+jer.fn.extend({
+	// 获得css 
+	css: function(){
+
+	},
+
+	getStyle: function(){
+
+	},
+
+	setStyle: function(){
 
 	}
 
-	// *** 命令行模式：封装复合命令，宏命令
 })
+
 
 window.jer = window.j = jer;
 
