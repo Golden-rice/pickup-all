@@ -10,17 +10,17 @@
 
 var 
     // 匹配 #id, .className, tagName
-    domExpr = /^([#|\.|\w]?)([\w]+)$/;
+    domExpr = /^([#|\.|\w]?)([\w]+)$/,
 
     // 防止命名空间冲突
-    _j   = window.j;
+    _j   = window.j,
     _jer = window.jer;
 
 
 // 构造函数
 jer = function(selector, context){
 	return new jer.fn.init(selector, context);
-}
+};
 
 jer.fn = jer.prototype = {
 	// 显式声明构造函数
@@ -36,7 +36,8 @@ jer.fn = jer.prototype = {
 	// 入口
 	init: function(selector, context){
 
-		var elem; 
+		var elem, ret = {},
+				context = context || document; 
 
 		// 运行检查
     this._check();
@@ -62,6 +63,20 @@ jer.fn = jer.prototype = {
 		 	}
 		}
 
+
+		// *** 简单封装: 调用时转化成数组调用
+	 	if(elem){
+
+	 		this.extend(ret, this.toArray(elem));
+	 		this.extend(ret, {
+	 			'length': elem.length,
+	 			'context': context,
+	 			'selector': selector,
+	 		});
+
+	 		this.extend(ret);
+	 	}
+
 	  return this;
 	},
 
@@ -71,6 +86,11 @@ jer.fn = jer.prototype = {
 			console.log('The library has same namespace in Global!');
 		}
 		return this;
+	},
+
+	// 获取elem元素
+	elem: function(){
+		return this.toArray(this);
 	},
 
 	// 类型判断
@@ -93,6 +113,60 @@ jer.fn = jer.prototype = {
 	  return function(obj){
 	    return Object.prototype.toString.call(obj) === '[object '+type+']';
 	  } 
+	},
+
+	// 合并，将第二个合并到第一个上
+	merge: function(first, second){
+		var i = 0, l = first.length;
+
+		if(!this.isArray(second)){
+			second = this.toArray(second);
+		}
+
+		if(this.isNumber(l)){
+			for( ; i < l; i++){
+				first[i] = second[i];
+			}
+		}
+
+		return first; 
+	},
+
+	// 转化成对象
+	toObject: function(input){
+		var o = 0, ret = {};
+
+		if(this.isArray(input)){
+	 		for(; o < input.length; o++){
+	 			ret[o] = input[o];
+	 		}
+	 		return ret;
+		} 
+		else if(this.isObject(input)){
+			return input;
+		}
+		return ret
+	},
+
+	// 转化成数组
+	toArray: function(input){
+		if(this.isObject(input)){
+			if(Array.from){
+		    // ES6
+		    return Array.from(input)
+			}
+
+	    // ES5
+	    return Array.prototype.slice.call(input);
+		} 
+		else if(this.isArray()){
+			return input;
+		}
+		// 类数组对象
+		else if(input.length){
+			return Array.prototype.slice.call(input);
+		}
+		return [];
 	},
 
 	// 根据类名查询 element
@@ -148,7 +222,14 @@ jer.fn = jer.prototype = {
 		return target;
 	},
 
+};
 
+jer.fn.init.prototype = jer.fn;
+
+jer.extend = jer.fn.extend;
+
+// 观察者模式及函数组合
+jer.fn.extend({
 	// 回调函数
 	callback: function(option){
 		return installEvent( {}, option );
@@ -225,7 +306,10 @@ jer.fn = jer.prototype = {
 		}
 
 	},
+})
 
+// 缓存
+jer.fn.extend({
 	// *** 内存泄漏
 	/* ***
    		循环引用，循环引用自己，DOM插入，闭包（常驻内存中）
@@ -233,14 +317,47 @@ jer.fn = jer.prototype = {
 			jQuery.data( element, key, value ) 与 $(ele).data( key, value ); 前者同名key数据缓存不会替换，后者会
 			jQuery.data 存储的数据在内存中以 映射关系与DOM关联，一种是存储在cache中，一种是存储在对象中
 			jquery.expando 关联 DOM 利用id缓存数据
+
+			Object.defineProperty(obj, 'name', object);
+
+			缓存结构：
+			var cache = {
+			  "uid1": { // DOM节点1缓存数据，
+			    "name1": value1,
+			    "name2": value2
+			  },
+			  "uid2": { // DOM节点2缓存数据，
+			    "name1": value1,
+			    "name2": value2
+			  }
+			  // ......
+			};
+		// 1.8 后被弃用
+		j.data('a') ->get
+		j.data('a','c') ->set
+
+		j().data('a') ->get uid
+		j().data('a',c)
      *** END
 	 */
 	// *** 
-}
 
-jer.fn.init.prototype = jer.fn;
+  // 缓存
+  cache: {},
 
-jer.extend = jer.fn.extend;
+
+  // 生成缓存
+	data: function( name, data ){
+		// elem 是不是独立的
+		console.log(this.elem())
+	},
+
+	acceptData: function( elem ){
+
+	}
+
+	// *** 命令行模式：封装复合命令，宏命令
+})
 
 window.jer = window.j = jer;
 
