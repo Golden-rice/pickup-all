@@ -8,17 +8,25 @@
 	<script src="http://code.jquery.com/jquery-latest.js"></script>
 </head>
 <body>
-	<div id="div1"></div>
+	<div id="div1" data-JS='test'></div>
+	<span id="span1"></span>
 	<div class="cl1"></div>
 	<div class="cl1"></div>
 	<div class="cl1"></div>
 </body>
 <script>
 
-
-	console.log(j('#div1'))
+	var req = j.fn.req({
+		url: '/',
+		query: {},
+		clk: function(){}
+	})
 	console.log($('#div1'));
-	console.log();
+
+
+
+// j.fn.data()
+// console.log(j('#div1').data('js'))
 
 //1
 // var obj = {};

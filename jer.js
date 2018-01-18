@@ -69,10 +69,9 @@ jer.fn = jer.prototype = {
 
 		// *** 简单封装: 调用时转化成数组调用
 	 	if(elem){
-
 	 		this.extend(ret, this.toArray(elem));
 	 		this.extend(ret, {
-	 			'length': elem.length,
+	 			'length': elem.length || 1,
 	 			'context': context,
 	 			'selector': selector,
 	 		});
@@ -114,6 +113,12 @@ jer.fn = jer.prototype = {
 	},
 	isUndefined: function(dom){
 		return this._isType('Undefined')(dom);
+	},
+	isNull: function(dom){
+		return this._isType('Null')(dom);
+	},
+	isElement: function(dom){
+		return /^\[object\sHTML\w+Element\]$/.test(Object.prototype.toString.call(dom));
 	},
 	_isType: function (type){
 	  return function(obj){
@@ -161,16 +166,18 @@ jer.fn = jer.prototype = {
 		    // ES6
 		    return Array.from(input)
 			}
-
 	    // ES5
 	    return Array.prototype.slice.call(input);
 		} 
-		else if(this.isArray()){
+		else if(this.isArray(input)){
 			return input;
 		}
 		// 类数组对象
 		else if(input.length){
 			return Array.prototype.slice.call(input);
+		}
+		else if(this.isElement(input)){
+			return [input];
 		}
 		return [];
 	},
@@ -234,6 +241,46 @@ jer.fn.init.prototype = jer.fn;
 
 jer.extend = jer.fn.extend;
 
+// 扩充类型方法
+jer.fn.extend({
+	// 使用方法：var obj = j.fn.installExtend(obj)
+	// 安装扩展
+	installExtend: function( obj ){
+		return this.extend( obj || {}, this._extend() );
+	},
+
+	// 扩展
+	_extend: function(){
+		var self = this;
+		return {
+			array: self.arrayExtend()
+		}
+	},
+
+	// 数组类型
+	arrayExtend: function(){
+
+		// 返回 first 与 second 的差集
+		var diff = function( first, second ){
+			return first;
+		}
+
+		// 返回 first 与 second 的交集
+		// 不含key，含key
+		var intersect = function( first, second ){
+			return first;
+		}
+
+		return {
+			diff: diff,
+			intersect: intersect,
+		}
+	}
+
+})
+// 装载工具
+jer.fn.extend(jer.fn._extend())
+
 // 观察者模式及函数组合
 // *** 命令行模式：封装复合命令，宏命令
 jer.fn.extend({
@@ -244,7 +291,7 @@ jer.fn.extend({
 
 	// 为对象安装观察者模式 
   installEvent: function(obj, option){
-  	return this.extend( obj || {}, _event(option) );
+  	return this.extend( obj || {}, this._event(option) );
   },
 
 	_event:  function(option){
@@ -364,16 +411,19 @@ jer.fn.extend({
 
 		if( !name || !elem ) { return this; }
 
-		if( elem[0] ){
+		if( elem[0] ){ // 同类仅返回第一个即可
 
+			// 获取 data- 属性
+			if( elem[0].dataset[name] ){ return elem[0].dataset[name]; }
+			// 获取缓存
 			if( elem[0].eid && this.cache[elem[0].eid] ) { 
 				return this.cache[elem[0].eid][name]; 
 			}
 
 		}else{
+			// 获取全局缓存
 			return elem[name];
 		}
-
 
 		return this;
 	},
@@ -396,7 +446,6 @@ jer.fn.extend({
 
 				if( !this.cache[id] ) { this.cache[id] = {}; }
 				this.cache[id][name] = data;
-
 			}
 
 		}
@@ -404,7 +453,6 @@ jer.fn.extend({
 		else{
 			elem[name] = data;
 		}
-
 
 		return this;
 	},
@@ -437,9 +485,116 @@ jer.fn.extend({
 	}
 })
 
-// XMLRequest 工具
+// 工具
 jer.fn.extend({
-	req: function(){
+	// 判断是否为空， '',  0 ,{}, [], false, NaN, undefined, null 
+	empty: function( input ){
+		switch ( input ){
+			case '':     // String
+				return true;
+			case false:  // Bool
+				return true;
+			case 0:      // Number
+				return true;
+			default: 
+				// Array
+				if( JSON.stringify( input ) === '[]' ) return true;
+				// Object
+				if( JSON.stringify( input ) === '{}' ) return true;
+				// undefined
+				if( isUndefined( input ) ) return true;
+				// null
+				if( isNull( input ) ) return true;
+				// NaN
+				if( isNaN( input ) ) return true;
+		}
+		return false;
+	},
+
+	// 检查必须字段是否全面，第一个参数为输入的对象，后面为检查字段
+	check: function( input, refer ){
+
+		// object -> array
+		if( this.isObject(input) ) { input = [input]; }
+
+		if( this.checkField( input[0], refer ) ){
+			return true;
+		}
+	},
+
+	// 检查字段是否全面
+	checkField: function( input, field ){
+		return this.array.diff( input, this.toArray( field ) );
+	},
+
+	// 生成错误
+	// error( msg[, file[, lineNumber]] )
+	error: function( msg, file, lineNumber ){
+		try {
+			throw new Error( msg, file, lineNumber );
+		} catch (e) {
+		  console.log(e)
+		}
+	}
+
+})
+
+// url 异步请求
+jer.fn.extend({
+
+	// XMLRequest 
+	// config ={query:{} /* 查询条件 */, url: ''/* url地址 */, clk: function(){}/* 回调函数 */, type: 'POST' /* default */}
+	req: function(config){
+		// 检查字段是否完整
+		if ( !this.check(config, ['query', 'url', 'clk']) ){ this.error('Wrong config items!'); }
+		
+		var resp, self = this,
+				request = new XMLHttpRequest();
+
+		request.open( config.type || 'POST', config.url, true );
+
+		// IE8+
+		// request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+
+		// IE9+
+		request.onload = function() {
+		  if (request.status >= 200 && request.status < 400) {
+		    // Success!
+		    var resp = request.responseText;
+
+		    if( config.success && self.isFunction(config.success) ){
+		    	config.success( resp, request.status, request );
+		    }
+		  } else {
+		    // We reached our target server, but it returned an error
+		    self.error( request.statusText + request.status )
+		  }
+		};
+
+		request.onerror = function() {
+		  // There was a connection error of some sort
+		  if( config.error && self.isFunction(config.error) ){
+		    	config.error( request, request.status );
+		   }
+		};
+			
+		request.send(config.query);
+
+		return request.response
+	},
+
+	// http GET
+	get: function(){
+
+	},
+
+	// http POST
+	post: function(){
+
+	},
+
+	// http Fetch  
+	fetch: function(){
 
 	}
 })

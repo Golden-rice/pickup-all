@@ -303,19 +303,23 @@ jer.fn.extend({
     },
     // 获得元素缓存
     getDate: function( elem, name ){
-        if( !name ) { return this; }
-        if( elem[0] ){
-            if( elem[0].eid && this.cache[elem[0].eid] ) {
-                return this.cache[elem[0].eid][name];
+        if( !name || !elem ) { return this; }
+        if( elem[0] ){ // 同类仅返回第一个即可
+            // 获取 data- 属性
+            if( elem[0].dataset[name] ){ return elem[0].dataset[name]; }
+            // 获取缓存
+            if( elem[0].eid && this.cache[elem[0].eid] ) { 
+                return this.cache[elem[0].eid][name]; 
             }
         }else{
+            // 获取全局缓存
             return elem[name];
         }
         return this;
     },
     // 给元素设置缓存
     setDate: function( elem, name, data ){
-        if( !name ) { return this; }
+        if( !name || !elem ) { return this; }
         var i = 0,
                 data = data && data.toString(),  
                 id = 'j' + Math.random();
