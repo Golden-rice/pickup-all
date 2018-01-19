@@ -16,33 +16,37 @@
 </body>
 <script>
 
-	var req = j.fn.req({
-		url: '/',
-		query: {},
-		clk: function(){}
-	})
-	console.log($('#div1'));
 
+j.fn.req({
+	url: '/a.json',
+	query: {},
+	// async: 'async',
+	// type: 'POST',
+	// ... 待完成 clk 无论成功与否都执行
+	clk: function(res){
+		console.log('clk', res)
+	},
+	success: function(res){
+		console.log('success!', res)
+	},
+	error: function(){
+		console.log('start error!')
+	}
+})
 
+// console.log($('#div1'));
+
+// j.fn.function
+// function fn(a) { console.log('fn', a); };
+// function fn1(a, b) { console.log('fn1', a, b); };
+
+// var a = fn; 
+// var b = j.fn.function.after.call(a, fn1, 'a', 'b'); 
+// b(0);
 
 // j.fn.data()
 // console.log(j('#div1').data('js'))
 
-//1
-// var obj = {};
-// $.data(obj, 'name', 'aaron');
-// console.log($.data(obj, 'name')) 
 
-// //2
-// var obj = {};
-// $.data(obj, {
-//   name1: 'aaron1'
-// });
-// console.log($.data(obj))
-
-// //3
-// var $body = $("body")
-// $body.data("foo", 52);
-// console.log($body.data('foo'))
 </script>
 </html>

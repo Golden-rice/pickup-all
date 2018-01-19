@@ -243,9 +243,9 @@ jer.extend = jer.fn.extend;
 
 // 扩充类型方法
 jer.fn.extend({
-	// 使用方法：var obj = j.fn.installExtend(obj)
+	// 使用方法：var obj = j.fn.installToolExtend(obj)
 	// 安装扩展
-	installExtend: function( obj ){
+	installToolExtend: function( obj ){
 		return this.extend( obj || {}, this._extend() );
 	},
 
@@ -253,11 +253,16 @@ jer.fn.extend({
 	_extend: function(){
 		var self = this;
 		return {
-			array: self.arrayExtend()
+			'array': self.arrayExtend(),
+			'date': self.dateExtend(),
+			'string': self.stringExtend(),
+			'function': self.functionExtend()
 		}
 	},
 
-	// 数组类型
+	// 数组类型方法扩展
+	// 内部使用方法，例如 this.array.diff()
+	// 外部使用方法，例如 j.fn.array.diff()
 	arrayExtend: function(){
 
 		// 返回 first 与 second 的差集
@@ -275,6 +280,106 @@ jer.fn.extend({
 			diff: diff,
 			intersect: intersect,
 		}
+	},
+
+	// 日期类型方法扩展
+
+	dateExtend: function(){
+
+	  // 格式化当前日期
+		// 内部使用方法，例如 this.date.format.call(new Date(), 'yyyy-MM-dd')
+		// 外部使用方法，例如 j.fn.date.format.call(new Date(), 'yyyy-MM-dd') 
+		var format = function( format ){
+		  // format("yyyy-MM-dd hh:mm:ss");
+		   var date = {
+	        "M+" : this.getMonth()+1,                            //月份 
+	        "d+" : this.getDate(),                               //日 
+	        "h+" : this.getHours(),                              //小时 
+	        "m+" : this.getMinutes(),                            //分 
+	        "s+" : this.getSeconds(),                            //秒 
+	        "q+" : Math.floor((this.getMonth()+3)/3),            //季度 
+	        "S"  : this.getMilliseconds()                        //毫秒 
+		   };
+		   if (/(y+)/i.test(format)) {
+          format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+		   }
+		   //英文字母月份，例如01JUN=>ddU
+		   if(/(U)/i.test(format)) {
+          format = format.replace(RegExp.$1, this.toString().substr(4,3).toUpperCase());
+		   }
+
+		   for (var k in date) {
+          if (new RegExp("(" + k + ")").test(format)) {
+            format = format.replace(RegExp.$1, RegExp.$1.length == 1
+                    ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+          }
+		   }
+		   return format;
+		}
+
+		return {
+			format: format
+		}
+	},
+
+	// 字符类型方法扩展
+	// 使用方法，例如 this.string.trim.call()
+	stringExtend: function(){
+
+		// 清除两边符号，默认为空格 
+		var trim = function(Symbol) {
+		  if(Symbol){
+		    Symbol = Symbol.replace(/(\\|\||\*|\+|\-|\?|\(|\)|\/|\.|\^|\$|\=)/g, "\\$1");
+		    var patten = new RegExp("(^"+Symbol+"*)|("+Symbol+"*$)",'g');
+		    return this.replace(patten, ''); 
+		  }
+		  return this.replace(/(^\s*)|(\s*$)/g, ''); 
+		}; 
+
+		return {
+			trim: trim
+		}
+	},
+
+	// 函数类型方法扩展
+	// 外部使用方法，例如 ：var a = fn; var b = j.fn.function.after.call(a, fn1, arg1, arg2); b(arg)
+	// var b = a.after(fn).after(fn2); b(args); 或 a.after(fn).after(fn2)(args)
+	functionExtend: function(){
+		// 延后执行
+		var after = function(){
+		  var self = this, 
+		  		fn   = Array.prototype.shift.call( arguments ), 
+		  		args = arguments;
+
+		  return function(){
+
+		    var ret = self.apply( this, arguments );
+		    args.valueOf().length > 0 ? fn.apply(this, args) :  // 自定义参数时
+		    														fn.apply(this, arguments);
+
+		    return ret;
+		  }
+		};
+
+		// 预先执行
+		var before = function(){
+		  var self = this, 
+		  		fn   = Array.prototype.shift.call( arguments ), 
+		  		args = arguments;
+
+		  return function(){
+
+		    args.valueOf().length > 0 ? fn.apply(this, args) :  // 自定义参数时
+		    														fn.apply(this, arguments);
+
+		    return self.apply(this, arguments);
+		  }
+		};
+
+		return {
+			after: after,
+			before: before
+		}
 	}
 
 })
@@ -285,8 +390,9 @@ jer.fn.extend(jer.fn._extend())
 // *** 命令行模式：封装复合命令，宏命令
 jer.fn.extend({
 	// 回调函数
+	// 使用方法：var a = j.fn.callback('once');a.listen('listen', f1);a.listen('listen', f2); a.trigger('listen');
 	callback: function(option){
-		return installEvent( {}, option );
+		return this.installEvent( {}, option );
 	},
 
 	// 为对象安装观察者模式 
@@ -317,16 +423,18 @@ jer.fn.extend({
 
 		// 触发事件，利用key来出发函数，第二个参数后面的部分座位执行函数的参数
 		trigger = function(){
-		    var i, fn,
+		    var i = 0, fn,
 		     		key = Array.prototype.shift.call(arguments),
 		        fns = clientList[key];
+
 		    if(!fns || fns.length === 0){
-		      	return false;
+	      	return false;
 		    }
+
 		    for(; fn = fns[i++];){
-		      	if( fn.apply(this, argumetns) === false && option === 'stopOnFalse'){
-		      		break;
-		      	}
+	      	if( fn.apply(this, arguments) === false && option === 'stopOnFalse'){
+	      		break;
+	      	}
 		    }
 
 		    if( option === 'once' ){
@@ -540,7 +648,13 @@ jer.fn.extend({
 })
 
 // url 异步请求
-jer.fn.extend({
+var jax = jer.extend({}, {
+	// 安装
+	install: function(){
+		return {
+			req: this.req
+		}
+	},
 
 	// XMLRequest 
 	// config ={query:{} /* 查询条件 */, url: ''/* url地址 */, clk: function(){}/* 回调函数 */, type: 'POST' /* default */}
@@ -548,26 +662,45 @@ jer.fn.extend({
 		// 检查字段是否完整
 		if ( !this.check(config, ['query', 'url', 'clk']) ){ this.error('Wrong config items!'); }
 		
-		var resp, self = this,
+		var resp, 
+				self    = this,
 				request = new XMLHttpRequest();
 
-		request.open( config.type || 'POST', config.url, true );
+		request.open( config.type || 'POST', config.url, config.async || true );
 
 		// IE8+
-		// request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+		request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
 
 		// IE9+
 		request.onload = function() {
 		  if (request.status >= 200 && request.status < 400) {
 		    // Success!
-		    var resp = request.responseText;
+
+		    // 返回的数据类型： xml html json script jsonp text
+		    if( config.dataType ){
+		    	switch ( config.dataType ){
+		    		case 'text':
+		    			resp = request.responseText;
+		    			break;
+		    		case 'json': 
+		    			resp = JSON.parse(request.response);
+		    			break;
+		    		// ...
+		    		default:
+		    			resp = request.response;
+		    			break;
+		    	}
+		    }
+		    else{
+			    resp = request.response;
+		    }
 
 		    if( config.success && self.isFunction(config.success) ){
 		    	config.success( resp, request.status, request );
 		    }
 		  } else {
 		    // We reached our target server, but it returned an error
-		    self.error( request.statusText + request.status )
+		    self.error( request.statusText + ' ' + request.status )
 		  }
 		};
 
@@ -577,11 +710,12 @@ jer.fn.extend({
 		    	config.error( request, request.status );
 		   }
 		};
-			
+
 		request.send(config.query);
 
-		return request.response
+		return this;
 	},
+
 
 	// http GET
 	get: function(){
@@ -596,8 +730,14 @@ jer.fn.extend({
 	// http Fetch  
 	fetch: function(){
 
-	}
+	},
+
 })
+
+// 装配 req clk
+
+
+jer.fn.extend(jax.install());
 
 // from free jquery
 // refer: https://github.com/nefe/You-Dont-Need-jQuery/blob/master/README.zh-CN.md#translations
