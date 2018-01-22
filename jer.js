@@ -383,46 +383,54 @@ jer.fn.extend({
 	}
 
 })
-// 装载工具
+// 装载扩展类型方法
 jer.fn.extend(jer.fn._extend())
 
 // 观察者模式及函数组合
-// *** 命令行模式：封装复合命令，宏命令
 jer.fn.extend({
 	// 回调函数
-	// 使用方法：var a = j.fn.callback('once');a.listen('listen', f1);a.listen('listen', f2); a.trigger('listen');
-	callback: function(option){
+	// 使用方法：var a = j.fn.Callbacks('once');a.listen('listen', f1);a.listen('listen', f2); a.trigger('listen');
+	// option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
+	Callbacks: function(option){
 		return this.installEvent( {}, option );
 	},
 
 	// 为对象安装观察者模式 
+	// option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
   installEvent: function(obj, option){
-  	return this.extend( obj || {}, this._event(option) );
+  	return this.extend( obj || {}, this.Event(option) );
   },
 
-	_event:  function(option){
+  // Event 构造函数
+  // option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
+	Event:  function(option){
 		var clientList = {},  // 订阅客户
 		    listen,           // 监听事件
 		    trigger,          // 触发事件
 		    remove;           // 移除事件 
 
 		// 订阅事件，利用key来区别函数组
+		// event.liten('key', function)
 		listen = function(key, fn){
-		    if( !clientList[key] ){
-		        clientList[key] = [];
-		    }
+			if( !j.fn.isFunction(fn) ) { return j.fn.error('The arguments is wrong type! ') }
 
-		    if( option === 'unique' ){
-		    	if( -1 === clientList[key].indexOf(fn) ){
-				    clientList[key].push(fn);
-		    	}
-		    }else{
-		    	clientList[key].push(fn);
-		    }
+	    if( !clientList[key] ){
+	        clientList[key] = [];
+	    }
+
+	    if( option === 'unique' ){
+	    	if( -1 === clientList[key].indexOf(fn) ){
+			    clientList[key].push(fn);
+	    	}
+	    }else{
+	    	clientList[key].push(fn);
+	    }
 		}
 
 		// 触发事件，利用key来出发函数，第二个参数后面的部分座位执行函数的参数
+		// event.trigger('key', ...args)
 		trigger = function(){
+
 		    var i = 0, fn,
 		     		key = Array.prototype.shift.call(arguments),
 		        fns = clientList[key];
@@ -443,6 +451,7 @@ jer.fn.extend({
 		}
 
 		// 移除事件，利用key来区别函数组
+		// event.remove('key', fn)
 		remove = function(key, fn){
 		    var fns = clientList[key];
 
@@ -459,15 +468,43 @@ jer.fn.extend({
 		        	}
 		      	}
 		    }
-		  }
+		}
+
+		// 判断该状态在不在队列中
+		var hasEvent = function( key ){
+			return clientList[key] ? true : false;
+		}
 
 		return {
 		    listen: listen,
 		    trigger: trigger,
-		    remove: remove
+		    remove: remove,
+		    hasEvent: hasEvent
 		}
 
 	},
+
+})
+
+// *** 命令行模式：生成命令组合，封装复合命令，宏命令
+jer.fn.extend({
+	// 可以 promise 链式生成
+	Command: function(){
+		var self = j.fn,
+				command = {},
+				set = {
+					
+					command: function( obj ){
+						return self.isObject(obj) ? self.extend( obj, set ) : set;
+					},
+					execute: function(){
+
+					}
+				};
+
+		set.command(command)
+		console.log(command)
+	}
 })
 
 // 缓存
@@ -643,9 +680,120 @@ jer.fn.extend({
 		} catch (e) {
 		  console.log(e)
 		}
-	}
+		return false;
+	},
 
+	// ready function
+	ready: function(){
+		/* ***
+			function addLoadEvent(func){
+			  var oldOnLoad = window.onload;
+			  if(typeof window.onload != 'function'){
+			    window.onload = func;
+			  }
+			  else{
+			    window.onload = function(){
+			          oldOnLoad();
+			          func();
+			    }
+			        
+			  }
+			}
+			可以改为 观察者模式
+		*/
+	}
 })
+
+// 非阻塞（异步）
+jer.fn.extend({
+	// defer 对象的构造函数
+	Deferred: function( fn ){
+
+		var self = j.fn,
+				i = 0,
+				// events 配置
+				events = [
+					['resolve', 'done', j.fn.Callbacks('once')]
+				],
+				// Defer 实例
+				deferred = {},
+				// 中间件 *** 未完成
+				promise = {
+					// 表示此时状态
+					state: function(){}, 
+					// 进行下一步，类似于返回 this
+					then: function(){
+						var fn = Array.prototype.shift(arguments);
+
+						if( self.isFunction(fn) ){ 
+							fn();
+						}
+						//	每回返回的是该对象
+						return new self.Deferred();
+					},
+					// 构造函数：返回 promise 实例 或 扩展
+					promise: function( obj ){
+						return self.isObject(obj) ? self.extend( obj, promise ) : promise;
+					}
+				},
+				deferEvent;
+
+		// pipe 生成的 promise 
+		promise.promise( deferred );
+
+		// 一套操作[triggerName( ext. command ), listenName, eventList] 例如['resolve', 'done', j.fn.Callbacks('once')]
+		// 批量生成 '观察者'
+		for(; i < events.length; i++){
+			// event list
+			deferEvent = events[i][2];
+
+			// event trigger
+			deferred[events[i][0]] = (function(i, deferEvent, deferred){
+
+				return function(){
+
+					var args = Array.prototype.slice.call( arguments );
+
+					// 利用 setTimeout 0 在done之后执行
+					if( !deferEvent.hasEvent( events[i][0] ) ) {
+
+						setTimeout(function(){
+							deferEvent.trigger.apply( deferred, Array.prototype.concat(events[i][0], args) );
+						},0);
+
+					}else{
+
+						deferEvent.trigger.apply( deferred, Array.prototype.concat(events[i][0], args) );
+
+					}
+				}
+
+			})(i, deferEvent, deferred);
+
+			// event listen
+			deferred[events[i][1]] = (function(i, deferEvent, deferred){
+
+				return function( fn ){
+
+	        deferEvent.listen(events[i][0], fn);
+
+	        return deferred;
+	      };
+
+	    })(i, deferEvent, deferred)
+		}
+
+
+		return deferred;
+
+		// 监听的三个状态： 未完成(unfulfilled)，已完成(resolved)，拒绝(rejected)
+			// 一套Done操作['resolve', 'done', j.fn.Callbacks('once'),'resolved']
+			// 一套Fail操作['reject', 'fail', j.fn.Callbacks('once'),'rejected']
+			// 一套Progress操作['notify', 'progress', j.fn.Callbacks('once')]
+
+	}
+})
+
 
 // url 异步请求
 var jax = jer.extend({}, {
@@ -653,23 +801,38 @@ var jax = jer.extend({}, {
 	install: function(){
 		return {
 			req: this.req
+
 		}
 	},
 
 	// XMLRequest 
 	// config ={query:{} /* 查询条件 */, url: ''/* url地址 */, clk: function(){}/* 回调函数 */, type: 'POST' /* default */}
+	// 问题：
+	// 1、跨域, jsonp
+	// 2、json的格式， dataType
+	// 3、dataType dataType
+	// 4、AJAX乱码问题 utf-8
+	// 5、页面缓存 
+	// 6、状态的跟踪 before after done
+	// 7、不同平台兼容 xhr API 不一致
 	req: function(config){
 		// 检查字段是否完整
 		if ( !this.check(config, ['query', 'url', 'clk']) ){ this.error('Wrong config items!'); }
 		
 		var resp, 
-				self    = this,
-				request = new XMLHttpRequest();
+				self     = this,
+				deferred = j.fn.Deferred(),
+				jaxEvent = this.installEvent('once'),
+				request  = new XMLHttpRequest();
 
 		request.open( config.type || 'POST', config.url, config.async || true );
 
 		// IE8+
 		request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+
+		if( config.clk && self.isFunction(config.clk) ){
+			deferred.done(config.clk);
+		}
 
 		// IE9+
 		request.onload = function() {
@@ -698,10 +861,18 @@ var jax = jer.extend({}, {
 		    if( config.success && self.isFunction(config.success) ){
 		    	config.success( resp, request.status, request );
 		    }
+
+		    // trigger 'done'
+			  deferred.resolve( resp, request.status, request );
+
 		  } else {
 		    // We reached our target server, but it returned an error
-		    self.error( request.statusText + ' ' + request.status )
+		    self.error( request.statusText + ' ' + request.status );
+
+		    // trigger 'done'
+			  deferred.resolve( request.statusText + ' ' + request.status );
 		  }
+
 		};
 
 		request.onerror = function() {
@@ -709,10 +880,14 @@ var jax = jer.extend({}, {
 		  if( config.error && self.isFunction(config.error) ){
 		    	config.error( request, request.status );
 		   }
+
+		  // trigger 'done'
+		  deferred.resolve( request, request.status );
 		};
 
 		request.send(config.query);
 
+		// jax 后的事件
 		return this;
 	},
 

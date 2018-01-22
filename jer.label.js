@@ -144,6 +144,7 @@ jer.fn = jer.prototype = {
     },
     // 利用观察者模式，组建回调函数
     // option 配置回调函数类型：once, memory(***), unique, stopOnFalse
+    // option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
     /* ***
             var actions = installEvent({}, 'once');
             event.listen('key1', fn1);
@@ -358,6 +359,110 @@ jer.fn.extend({
     // *** 命令行模式：封装复合命令，宏命令
 })
 
+
+// 非阻塞（异步）
+jer.fn.extend({
+    // defer 对象的构造函数
+    Deferred: function( fn ){
+
+        var tuple,
+                self = this,
+                i = 0,
+                tuples = [
+                // 类似于REACT对DOM的区分:  动作 侦听器 fn 最终状态 -> 命令行模式
+                // 所有暴露的API接口
+                ["resolve", "done", self.Callbacks("once"), "resolved"],
+                ["reject", "fail", self.Callbacks("once"), "rejected"],
+                ["notify", "progress", self.Callbacks("memory")]
+                ],
+                // 封装的 promise 实例，用于管道执行的中间件
+                promise = {
+                state: function() {},
+                always: function() {},
+                then: function( /* fnDone, fnFail, fnProgress */ ) {},
+                // 扩展 promise 或 作为构造函数指向自己
+                promise: function( obj ) {
+
+                        return self.isObject(obj) ? self.extend(this, obj) : promise;
+
+                }
+                },
+                // 封装的 defer 实例，done fail progress 
+                deferred = {},
+                deferEvent = this.Event();
+
+        // 定义管道风格的接口pipe *** 不知何用？换个名字而已
+        // 一个 then 就是一个新的 promise 对象：promise.promise(deferred) 即生成一个新的 promise 对象
+      promise.pipe = promise.then;
+
+      for(; i < tuples.length; i++ ){
+        tuple = tuples[i];
+        // *** 
+        var list = tuple[2], stateString = tuple[3];
+        // 批量生成 derred 状态方法
+        // resolveWith
+        deferred[tuple[0]+'With'] = list.fireWith;
+        // resolve
+        deferred[tuple[0]] = function(){
+            // promise.done = listen 
+            promise[tuple[1]] = list.listen;
+
+            if( stateString ){
+                list.listen(tuple[1], )
+            }
+
+            // this is deferred
+            return deferred;
+        }
+        
+      }
+      /*
+            deferred = {
+                resolve: function(){
+                    deferred.resolveWith( this === deferred ? promise : this, arguments )
+                    // derred.resolveWith = deferEvent.fireWith
+                    return this;
+                },
+                resolveWith: 
+            }
+      */
+        // 批量扩展 defer 对象
+
+
+      promise.promise( deferred );
+
+      if (func) {
+        func.call(deferred, deferred);
+      }
+      // return deferred;
+
+        // done 之前 用resolve， 延时处理
+        // defer.then 返回值可以直接应用在 后续的done中 （with 引起）
+
+        // 监听的三个状态： 未完成(unfulfilled)，已完成(resolved)，拒绝(rejected)
+        return {
+
+            // 一套Done操作['resolve', 'done', j.fn.Callbacks('once'),'resolved']
+            done: function( fn ){
+
+                if( !self.isFunction(fn) ) { return self.error('The arguments is wrong type! ') }
+
+                deferEvent.listen('done', fn);
+
+            },
+            resolve: function(){
+
+                var args = Array.prototype.slice.call( arguments );
+                // 1. 利用 setTimeout 0 在done之后执行
+                // 2. 回调函数 Callback.fireWith
+                deferEvent.trigger.apply( this, Array.prototype.concat('done', args) );
+
+            }
+            // 一套Fail操作['reject', 'fail', j.fn.Callbacks('once'),'rejected']
+            // 一套Progress操作['notify', 'progress', j.fn.Callbacks('once')]
+        }
+    }
+})
 
 window.jer = window.j = jer;
 })(window);

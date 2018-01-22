@@ -13,15 +13,22 @@
 	<div class="cl1"></div>
 	<div class="cl1"></div>
 	<div class="cl1"></div>
+
+
 </body>
 <script>
 
+var command = j.fn.Command();
 
 j.fn.req({
 	url: '/a.json',
 	query: {},
 	// async: 'async',
 	// type: 'POST',
+	// beforeSend: function(){},
+	// dataFilter: function(){},
+	// complete: function(){},
+	// defer 的 done 回调
 	// ... 待完成 clk 无论成功与否都执行
 	clk: function(res){
 		console.log('clk', res)
@@ -33,6 +40,15 @@ j.fn.req({
 		console.log('start error!')
 	}
 })
+
+// var defer = j.fn.Deferred();
+//   defer.done(function() {
+//     console.log('成功')
+//   })
+//   // 开始执行一段代码
+//   setTimeout(function() {
+//     defer.resolve(); // 改变deferred对象的执行状态
+//   }, 2000);
 
 // console.log($('#div1'));
 
