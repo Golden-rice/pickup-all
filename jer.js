@@ -40,20 +40,20 @@ jer.fn = jer.prototype = {
 				context = context || document; 
 
 		// 运行检查
-    this._check();
+    jer.fn._check();
 
 		// 处理 (null) (undefined) ('') (false)
 		if ( !selector ) { 
-		 	return this;
+		 	return jer.fn;
 		}
 
 	  // 处理 (HTML标签)
 	  if ( selector.charAt(0) === "<" && selector.charAt( selector.length - 1 ) === ">" && selector.length >= 3 ){
-	 	  return this;
+	 	  return jer.fn;
 	  } 
 
 		// 处理查询语句
-		if ( this.isString(selector) ) {
+		if ( jer.fn.isString(selector) ) {
 			if(/^#(\w+$)/.test(selector) && document.querySelector ){
 				// 匹配 id element
 				elem = document.querySelector(selector);
@@ -62,24 +62,22 @@ jer.fn = jer.prototype = {
 		 		elem = document.querySelectorAll(selector);
 		 	} else {
 		 		// 匹配 #id tagName .className
-		 		elem = document.getElementById(/^#(\w+$)/.exec(selector)[1]) || document.getElementsByTagName(/(^\w+$)/.exec(selector)[1]) || ( document.getElementsByClassName && document.getElementsByClassName(/^\.(\w+$)/.exec(selector)[1]) ) || this.getElementsByClassName(/^\.(\w+$)/.exec(selector)[1]);
+		 		elem = document.getElementById(/^#(\w+$)/.exec(selector)[1]) || document.getElementsByTagName(/(^\w+$)/.exec(selector)[1]) || ( document.getElementsByClassName && document.getElementsByClassName(/^\.(\w+$)/.exec(selector)[1]) ) || jer.fn.getElementsByClassName(/^\.(\w+$)/.exec(selector)[1]);
 		 	}
 		}
 
 
 		// *** 简单封装: 调用时转化成数组调用
 	 	if(elem){
-	 		this.extend(ret, this.toArray(elem));
-	 		this.extend(ret, {
-	 			'length': elem.length || 1,
-	 			'context': context,
-	 			'selector': selector,
-	 		});
 
-	 		this.extend(ret);
+			ret = jer.fn.toArray(elem);
+			ret.context  = context;
+			ret.selector = selector;
+
+	 		jer.fn.extend(ret);
 	 	}
 
-	  return this;
+	  return jer.fn;
 	},
 
 	// 运行检查: 命名空间
@@ -87,35 +85,35 @@ jer.fn = jer.prototype = {
 		if( window.j !== j || window.jer !== jer) {
 			console.log('The library has same namespace in Global!');
 		}
-		return this;
+		return jer.fn;
 	},
 
 	// 获取elem元素
 	elem: function(){
-		return this.toArray(this);
+		return jer.fn.toArray(this);
 	},
 
 	// 类型判断
 	isArray: function(dom){
-		return this._isType('Array')(dom);
+		return jer.fn._isType('Array')(dom);
 	},
 	isString: function(dom){
-		return this._isType('String')(dom);
+		return jer.fn._isType('String')(dom);
 	},
 	isNumber: function(dom){
-		return this._isType('Number')(dom);
+		return jer.fn._isType('Number')(dom);
 	},
 	isObject: function(dom){
-		return this._isType('Object')(dom);
+		return jer.fn._isType('Object')(dom);
 	},
 	isFunction: function(dom){
-		return this._isType('Function')(dom);
+		return jer.fn._isType('Function')(dom);
 	},
 	isUndefined: function(dom){
-		return this._isType('Undefined')(dom);
+		return jer.fn._isType('Undefined')(dom);
 	},
 	isNull: function(dom){
-		return this._isType('Null')(dom);
+		return jer.fn._isType('Null')(dom);
 	},
 	isElement: function(dom){
 		return /^\[object\sHTML\w+Element\]$/.test(Object.prototype.toString.call(dom));
@@ -130,11 +128,11 @@ jer.fn = jer.prototype = {
 	merge: function(first, second){
 		var i = 0, l = first.length;
 
-		if(!this.isArray(second)){
-			second = this.toArray(second);
+		if(!jer.fn.isArray(second)){
+			second = jer.fn.toArray(second);
 		}
 
-		if(this.isNumber(l)){
+		if(jer.fn.isNumber(l)){
 			for( ; i < l; i++){
 				first[i] = second[i];
 			}
@@ -145,38 +143,50 @@ jer.fn = jer.prototype = {
 
 	// 转化成对象
 	toObject: function(input){
-		var o = 0, ret = {};
+		var i , ret = {};
 
-		if(this.isArray(input)){
-	 		for(; o < input.length; o++){
-	 			ret[o] = input[o];
-	 		}
-	 		return ret;
-		} 
-		else if(this.isObject(input)){
+		if(jer.fn.isObject(input)){
 			return input;
+		}
+		else{
+			// 直接给数组赋值key，不增加length
+			for( i in input ){
+				ret[i] = input[i];
+			}
+	 		return ret;
 		}
 		return ret
 	},
 
 	// 转化成数组
-	toArray: function(input){
-		if(this.isObject(input)){
+	toArray: function(input, clk){
+		
+		// 类数组对象
+		if(input.length){
 			if(Array.from){
 		    // ES6
 		    return Array.from(input)
 			}
-	    // ES5
-	    return Array.prototype.slice.call(input);
-		} 
-		else if(this.isArray(input)){
-			return input;
-		}
-		// 类数组对象
-		else if(input.length){
 			return Array.prototype.slice.call(input);
 		}
-		else if(this.isElement(input)){
+		else if(jer.fn.isArray(input)){
+			return input;
+		}
+		// 对象转数组
+		else if(jer.fn.isObject(input)){
+			var i = 0, array = [];
+			if( clk && jer.fn.isFunction(clk) ){
+				for( i in input){
+					array.push( clk.call(this, input[i], i ) );
+				}
+			}else{
+				for( i in input){
+					array.push( input[i] );
+				}
+			}
+			return array;
+		} 
+		else if(jer.fn.isElement(input)){
 			return [input];
 		}
 		return [];
@@ -236,7 +246,8 @@ jer.fn = jer.prototype = {
 	},
 
 };
-
+// new jer.fn.init() 
+// jer.fn.init.prototype = jer.fn = jer.prototype，在实例对象时，将jer的原型绑定在实例上
 jer.fn.init.prototype = jer.fn;
 
 jer.extend = jer.fn.extend;
@@ -246,12 +257,24 @@ jer.fn.extend({
 	// 使用方法：var obj = j.fn.installToolExtend(obj)
 	// 安装扩展
 	installToolExtend: function( obj ){
-		return this.extend( obj || {}, this._extend() );
+		return jer.fn.extend( obj || {}, jer.fn._extend() );
+	},
+
+	// 安装在原生上
+	installPrototype: function( name ){
+		var i, 
+				extend = jer.fn._extend();
+
+		if( name && jer.fn.isString(name) ){
+			console.log(name, typeof name, name.prototype)
+		}
+
+
 	},
 
 	// 扩展
 	_extend: function(){
-		var self = this;
+		var self = jer.fn;
 		return {
 			'array': self.arrayExtend(),
 			'date': self.dateExtend(),
@@ -336,8 +359,17 @@ jer.fn.extend({
 		  return this.replace(/(^\s*)|(\s*$)/g, ''); 
 		}; 
 
+		// 首字母大写
+		var firstUpperCase = function(string){
+			if(jer.fn.isString){
+		    return string.replace(/^\S/, function(s){console.log(s);return s.toUpperCase();});
+			}
+			return '';
+		}
+
 		return {
-			trim: trim
+			trim: trim,
+			firstUpperCase: firstUpperCase
 		}
 	},
 
@@ -346,16 +378,17 @@ jer.fn.extend({
 	// var b = a.after(fn).after(fn2); b(args); 或 a.after(fn).after(fn2)(args)
 	functionExtend: function(){
 		// 延后执行
+		// fn 在 after 之前执行 
 		var after = function(){
-		  var self = this, 
-		  		fn   = Array.prototype.shift.call( arguments ), 
-		  		args = arguments;
+		  var fn    = Array.prototype.shift.call( arguments ), 
+		  		after = Array.prototype.shift.call( arguments ), 
+		  		args  = arguments;
 
 		  return function(){
 
-		    var ret = self.apply( this, arguments );
-		    args.valueOf().length > 0 ? fn.apply(this, args) :  // 自定义参数时
-		    														fn.apply(this, arguments);
+		    var ret = fn.apply( fn, arguments );
+		    args.valueOf().length > 0 ? after.apply(after, args) :  // 自定义参数时
+		    														after.apply(after, arguments);
 
 		    return ret;
 		  }
@@ -363,16 +396,16 @@ jer.fn.extend({
 
 		// 预先执行
 		var before = function(){
-		  var self = this, 
-		  		fn   = Array.prototype.shift.call( arguments ), 
-		  		args = arguments;
+		  var fn     = Array.prototype.shift.call( arguments ), 
+				  before = Array.prototype.shift.call( arguments ), 
+		  		args   = arguments;
 
 		  return function(){
 
-		    args.valueOf().length > 0 ? fn.apply(this, args) :  // 自定义参数时
-		    														fn.apply(this, arguments);
+		    args.valueOf().length > 0 ? before.apply(before, args) :  // 自定义参数时
+		    														before.apply(before, arguments);
 
-		    return self.apply(this, arguments);
+		    return fn.apply(fn, arguments);
 		  }
 		};
 
@@ -392,19 +425,21 @@ jer.fn.extend({
 	// 使用方法：var a = j.fn.Callbacks('once');a.listen('listen', f1);a.listen('listen', f2); a.trigger('listen');
 	// option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
 	Callbacks: function(option){
-		return this.installEvent( {}, option );
+		return jer.fn.installEvent( {}, option );
 	},
 
 	// 为对象安装观察者模式 
 	// option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
   installEvent: function(obj, option){
-  	return this.extend( obj || {}, this.Event(option) );
+  	return jer.fn.extend( obj || {}, this.Event(option) );
   },
 
   // Event 构造函数
   // option 配置回调函数类型：once(仅执行一次), unique（事件再组中仅保存一次）, stopOnFalse（事件执行中遇到失败则停止）
 	Event:  function(option){
 		var clientList = {},  // 订阅客户
+				memory,           // 缓存
+				triggerWith,      // 根据缓存触发事件
 		    listen,           // 监听事件
 		    trigger,          // 触发事件
 		    remove;           // 移除事件 
@@ -450,6 +485,15 @@ jer.fn.extend({
 		    }
 		}
 
+		// 带有缓存的触发事件
+		triggerWith = function(){
+			var key       = Array.prototype.shift.call( arguments ),
+					args      = Array.prototype.slice.call( arguments );
+					memory    = args || memory;
+					args      = Array.prototype.concat.call( memory, args )
+			trigger.apply(this, args);
+		}
+
 		// 移除事件，利用key来区别函数组
 		// event.remove('key', fn)
 		remove = function(key, fn){
@@ -478,6 +522,7 @@ jer.fn.extend({
 		return {
 		    listen: listen,
 		    trigger: trigger,
+		    triggerWith: triggerWith,
 		    remove: remove,
 		    hasEvent: hasEvent
 		}
@@ -486,24 +531,57 @@ jer.fn.extend({
 
 })
 
-// *** 命令行模式：生成命令组合，封装复合命令，宏命令
+// 命令行模式：生成命令组合，封装复合命令，宏命令
+// 非阻塞执行，异步
+// option: stopOnFalse（事件执行中遇到失败则停止），once(仅执行一次)
 jer.fn.extend({
-	// 可以 promise 链式生成
-	Command: function(){
+	Command: function( option ){
 		var self = j.fn,
-				command = {},
 				set = {
-					
-					command: function( obj ){
-						return self.isObject(obj) ? self.extend( obj, set ) : set;
+					// 重构函数
+					set: function( obj ){
+						this.command = [];
+						// 初始化命令
+						if( self.isObject( obj ) ){
+							this.command = self.toArray( obj );
+						}	
+						return set; 
 					},
-					execute: function(){
 
-					}
+					// 宏命令
+					add: function(){
+						var fn   = Array.prototype.shift.call( arguments ),
+								args = self.toArray(arguments) || null;
+
+						if( self.isFunction(fn) ){
+							this.command.push({'fn': fn, 'args': args});
+						}
+					},
+
+					// 执行命令
+					execute: function(){
+						for(var i in this.command){
+							if( this.command[i].fn.apply( this.command[i].fn, this.command[i].args || arguments) === false && option === 'stopOnFalse' ){
+								break;
+							}
+						}
+						if( option === 'once' ){
+				    	this.command = [];
+				    }
+					},
+
+					// 撤销命令
+					// 清除原来产生的效果，重新制作
+					undo: function(){
+						// 例如 canvas 清空画布，标签清空内容
+
+					},
+
+					// 重做命令
+					// 重新播放命令队列
 				};
 
-		set.command(command)
-		console.log(command)
+		return set.set();
 	}
 })
 
@@ -516,21 +594,21 @@ jer.fn.extend({
   // 生成缓存
 	data: function( name, data ){
 
-		if( !name ) { return this; }
+		if( !name ) { return jer.fn; }
 
 		var gid  = 'j-BB68835792FC129863D93292CE17E21D',
 				name = name && name.toString(), 
-			  elem = this.elem();
+			  elem = jer.fn.elem();
 
 		// 存储在elem中
 		if( elem.length ){
 			// 设置数据
 			if( data ) {
-				return this.setDate( elem, name, data );
+				return jer.fn.setDate( elem, name, data );
 			}
 			// 如果仅有name，则是取数据
 			else{
-				return this.getDate( elem, name );
+				return jer.fn.getDate( elem, name );
 			}
 
 		}
@@ -539,11 +617,11 @@ jer.fn.extend({
 
 			if( data ){
 				if ( !this.cache[this.gid] ) { this.cache[this.gid] = {}; }
-				return this.setDate( this.cache[this.gid], name, data );
+				return jer.fn.setDate( this.cache[this.gid], name, data );
 			}
 
 			else{
-				return this.getDate( this.cache[this.gid], name );
+				return jer.fn.getDate( this.cache[this.gid], name );
 			}
 
 		}
@@ -634,6 +712,7 @@ jer.fn.extend({
 jer.fn.extend({
 	// 判断是否为空， '',  0 ,{}, [], false, NaN, undefined, null 
 	empty: function( input ){
+
 		switch ( input ){
 			case '':     // String
 				return true;
@@ -643,15 +722,25 @@ jer.fn.extend({
 				return true;
 			default: 
 				// Array
-				if( JSON.stringify( input ) === '[]' ) return true;
+				if( jer.fn.isArray(input) ) { 
+					if( JSON.stringify( input ) === '[]' ){
+						return true; 
+					}else{
+						return false;
+					}
+				}
 				// Object
-				if( JSON.stringify( input ) === '{}' ) return true;
+				if( jer.fn.isObject(input) ) { 
+					if( JSON.stringify( input ) === '{}' ) { 
+						return true; 
+					}else{
+						return false;
+					}
+				}
 				// undefined
-				if( isUndefined( input ) ) return true;
+				if( jer.fn.isUndefined( input ) ) { return true; }
 				// null
-				if( isNull( input ) ) return true;
-				// NaN
-				if( isNaN( input ) ) return true;
+				if( jer.fn.isNull( input ) ) { return true; }
 		}
 		return false;
 	},
@@ -660,16 +749,16 @@ jer.fn.extend({
 	check: function( input, refer ){
 
 		// object -> array
-		if( this.isObject(input) ) { input = [input]; }
+		if( jer.fn.isObject(input) ) { input = [input]; }
 
-		if( this.checkField( input[0], refer ) ){
+		if( jer.fn.checkField( input[0], refer ) ){
 			return true;
 		}
 	},
 
 	// 检查字段是否全面
 	checkField: function( input, field ){
-		return this.array.diff( input, this.toArray( field ) );
+		return jer.fn.array.diff( input, jer.fn.toArray( field ) );
 	},
 
 	// 生成错误
@@ -681,6 +770,46 @@ jer.fn.extend({
 		  console.log(e)
 		}
 		return false;
+	},
+
+	// 事件监听
+	bind: function(){
+		// 参数
+		var action = Array.prototype.shift.call(arguments), 
+				elem, fn, run;
+
+		// DOM 
+		if( !jer.fn.empty( jer.fn.toArray(this) ) ){
+			elem = jer.fn.toArray(this);
+		}
+		else{
+			// 重新捕获
+			elem = jer.fn.init( Array.prototype.shift.call(arguments) );
+		}
+
+		fn = Array.prototype.shift.call(arguments);
+		args = arguments;
+		run = function(){
+			if (args){
+				fn.apply(this, args); 
+			}else{
+				fn();
+			}
+		}
+
+		// IE 9+
+		if( window.addEventListener ){
+			for(var i in elem){
+				elem[i].addEventListener( action, run );
+			}
+		}
+		// IE 9-
+		else if( window.attachEvent ){
+			for(var i in elem){
+				elem[i].attachEvent( action, run );
+			}
+		}
+			
 	},
 
 	// ready function
@@ -770,7 +899,7 @@ jer.fn.extend({
 
 			})(i, deferEvent, deferred);
 
-			// event listen
+			// event listen : done, fail, progress
 			deferred[events[i][1]] = (function(i, deferEvent, deferred){
 
 				return function( fn ){
@@ -783,13 +912,12 @@ jer.fn.extend({
 	    })(i, deferEvent, deferred)
 		}
 
-
 		return deferred;
 
 		// 监听的三个状态： 未完成(unfulfilled)，已完成(resolved)，拒绝(rejected)
-			// 一套Done操作['resolve', 'done', j.fn.Callbacks('once'),'resolved']
-			// 一套Fail操作['reject', 'fail', j.fn.Callbacks('once'),'rejected']
-			// 一套Progress操作['notify', 'progress', j.fn.Callbacks('once')]
+		// 一套Done操作['resolve', 'done', j.fn.Callbacks('once'),'resolved']
+		// 一套Fail操作['reject', 'fail', j.fn.Callbacks('once'),'rejected']
+		// 一套Progress操作['notify', 'progress', j.fn.Callbacks('once')]
 
 	}
 })
@@ -817,12 +945,12 @@ var jax = jer.extend({}, {
 	// 7、不同平台兼容 xhr API 不一致
 	req: function(config){
 		// 检查字段是否完整
-		if ( !this.check(config, ['query', 'url', 'clk']) ){ this.error('Wrong config items!'); }
+		if ( !jer.fn.check(config, ['query', 'url', 'clk']) ){ jer.fn.error('Wrong config items!'); }
 		
 		var resp, 
-				self     = this,
+				self     = jer.fn,
 				deferred = j.fn.Deferred(),
-				jaxEvent = this.installEvent('once'),
+				jaxEvent = jer.fn.installEvent('once'),
 				request  = new XMLHttpRequest();
 
 		request.open( config.type || 'POST', config.url, config.async || true );

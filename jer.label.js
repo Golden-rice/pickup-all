@@ -83,12 +83,17 @@ jer.fn = jer.prototype = {
          */
         // *** 简单封装: 调用时转化成数组调用
         if(elem){
-            this.extend(ret, this.toArray(elem));
-            this.extend(ret, {
-                'length': elem.length,
-                'context': context,
-                'selector': selector,
-            });
+            // this.extend(ret, this.toArray(elem));
+            // this.extend(ret, {
+            //     'length': elem.length,
+            //     'context': context,
+            //     'selector': selector,
+            // });
+
+            ret = jer.fn.toArray(elem);
+            ret.context  = context;
+            ret.selector = selector;
+            
             this.extend(ret);
         }
 
@@ -359,6 +364,40 @@ jer.fn.extend({
     // *** 命令行模式：封装复合命令，宏命令
 })
 
+// *** 命令行模式：生成命令组合，封装复合命令，宏命令
+jer.fn.extend({
+    // *** var a = {c: fn, b: fn}; set = function(target, command){ target.action1 = command.c(); }
+    // *** -> var aCommand = function(reciver){ return {execute: function(){ reciver.c(); reciver.b(); }}} 
+    // *** -> a.execute(){ cfn(); bfn(); }
+    Command: function( reciver ){
+        var self = j.fn,
+                command = [],
+                set = {
+                    // 重构函数
+                    set: function( obj ){
+                        return self.isObject(obj) ? self.extend( obj, set ) : set; 
+                    },
+                    // 为命令绑定事件并执行，target 为dom，action 为绑定的事件
+                    bind: function( target, action ){
+                        self.bind(target, action, this.command);
+                    },
+                    // 执行命令
+                    execute: function(){
+                        var fn, i;
+                        for(i in command){
+                            fn = command[i];
+                            fn.apply(this, arguments);
+                        }
+                    }
+                };
+
+        if( self.isObject( reciver ) ){
+            command = self.toArray( reciver );
+        }   
+
+        return set.set();
+    }
+})
 
 // 非阻塞（异步）
 jer.fn.extend({
@@ -400,19 +439,19 @@ jer.fn.extend({
         // *** 
         var list = tuple[2], stateString = tuple[3];
         // 批量生成 derred 状态方法
+
+        if( stateString ){
+            list.listen(tuple[1], )
+        }
         // resolveWith
         deferred[tuple[0]+'With'] = list.fireWith;
-        // resolve
+        // promise.done = listen 
+        promise[tuple[1]] = list.listen;
+        // resolve -> 实际调用 resolveWith
         deferred[tuple[0]] = function(){
-            // promise.done = listen 
-            promise[tuple[1]] = list.listen;
-
-            if( stateString ){
-                list.listen(tuple[1], )
-            }
-
+            deferred[tuple[0]+'With'](this === deferred ?  promise : this, arguments);
             // this is deferred
-            return deferred;
+            return this;
         }
         
       }
@@ -434,33 +473,15 @@ jer.fn.extend({
       if (func) {
         func.call(deferred, deferred);
       }
-      // return deferred;
 
-        // done 之前 用resolve， 延时处理
-        // defer.then 返回值可以直接应用在 后续的done中 （with 引起）
+    // *** 链式实际仍然是用返回值 .then 是利用新的Deferred，但是执行保留原先执行上下文（参数）,利用callback.fireWith
+    return deferred;
+    // 监听的三个状态： 未完成(unfulfilled)，已完成(resolved)，拒绝(rejected)
+    // 一套Done操作['resolve', 'done', j.fn.Callbacks('once'),'resolved']
+    // 一套Fail操作['reject', 'fail', j.fn.Callbacks('once'),'rejected']
+    // 一套Progress操作['notify', 'progress', j.fn.Callbacks('once')]
 
-        // 监听的三个状态： 未完成(unfulfilled)，已完成(resolved)，拒绝(rejected)
-        return {
 
-            // 一套Done操作['resolve', 'done', j.fn.Callbacks('once'),'resolved']
-            done: function( fn ){
-
-                if( !self.isFunction(fn) ) { return self.error('The arguments is wrong type! ') }
-
-                deferEvent.listen('done', fn);
-
-            },
-            resolve: function(){
-
-                var args = Array.prototype.slice.call( arguments );
-                // 1. 利用 setTimeout 0 在done之后执行
-                // 2. 回调函数 Callback.fireWith
-                deferEvent.trigger.apply( this, Array.prototype.concat('done', args) );
-
-            }
-            // 一套Fail操作['reject', 'fail', j.fn.Callbacks('once'),'rejected']
-            // 一套Progress操作['notify', 'progress', j.fn.Callbacks('once')]
-        }
     }
 })
 

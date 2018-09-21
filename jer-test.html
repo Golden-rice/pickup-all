@@ -10,15 +10,54 @@
 <body>
 	<div id="div1" data-JS='test'></div>
 	<span id="span1"></span>
-	<div class="cl1"></div>
-	<div class="cl1"></div>
-	<div class="cl1"></div>
-
+	<div class="cl1">111</div>
+	<div class="cl1">2222</div>
+	<div class="cl1">3333</div>
+	
+	<button id="btn1">click</button>
 
 </body>
 <script>
+/*
+callbacks
+callbacks.add()        ：回调列表中添加一个回调或回调的集合。
+callbacks.disable()    ：禁用回调列表中的回调。
+callbacks.disabled()   ：确定回调列表是否已被禁用。 
+callbacks.empty()      ：从列表中删除所有的回调。
+callbacks.fire()       ：用给定的参数调用所有的回调。
+callbacks.fired()      ：访问给定的上下文和参数列表中的所有回调。 
+callbacks.fireWith()   ：访问给定的上下文和参数列表中的所有回调。
+callbacks.has()        ：确定列表中是否提供一个回调。
+callbacks.lock()       ：锁定当前状态的回调列表。
+callbacks.locked()     ：确定回调列表是否已被锁定。
+callbacks.remove()     ：从回调列表中的删除一个回调或回调集合。
+*/
+var filterResolve = function() {
 
-var command = j.fn.Command();
+  var defer = $.Deferred();
+
+  //先执行成功
+  defer.resolve(5);
+
+  //后添加
+  defer.done(function(value) {
+    $('body').append("<li>defer.done的值是：" + value + "</li>");
+  })
+
+  //实现一个管道方法
+  var filtered = defer.then(function(value) {
+    return value * 2;
+  });
+
+  //接受上一个值，叠加处理
+  filtered.done(function(value) {
+    $('body').append("<li>filtered.done ( 2*5 = ) 10: "+value + "</li>");
+  });
+
+};
+
+$("button").on("click", filterResolve);
+  
 
 j.fn.req({
 	url: '/a.json',
@@ -40,6 +79,15 @@ j.fn.req({
 		console.log('start error!')
 	}
 })
+
+console.log(j('.cl1'))
+// var a = {
+// 	a: function(){ console.log('a')},
+// 	b: function(args){ console.log('b',args)},
+// }
+// var command = j.fn.Command(a);
+// command.execute('1')
+// j('.cl1').bind('click', command.execute, '11');
 
 // var defer = j.fn.Deferred();
 //   defer.done(function() {
