@@ -1,0 +1,13 @@
+{
+  "name": "demo",
+  "authors": [
+    "Golden-rice <279452970@qq.com>"
+  ],
+  "description": "a node demo",
+  "main": "app.js",
+  "license": "MIT",
+  "homepage": "",
+  "dependencies": {
+    "bootstrap": "boostrap#^3.3.7"
+  }
+}
