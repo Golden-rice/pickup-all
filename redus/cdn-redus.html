@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+	<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+
+</head>
+<body>
+	<div id="root"></div>
+		<script>
+/*
+return Object.assign({}, state, {
+  [action.subreddit]: posts(state[action.subreddit], action)
+})
+与下面代码等价：
+
+let nextState = {}
+nextState[action.subreddit] = posts(state[action.subreddit], action)
+return Object.assign({}, state, nextState)
+*/
+
+/* 几个问题
+   redux 中的 store 和 state 是不是一个概念？
+   store 是model集合，里面包含了state，同时里面还有其他的，例如 某个model 包含的方法，此处的model 是为了结合 DVA 的概念存在，store 是 所有model的集合。
+ */ 
+
+		// thunkMiddleware 允许 thunk 函数功能，目的是支持异步
+		// 通过 monkeypatch 修饰原代码
+		// logger middleware
+		// next 手动传入，此时是修饰后的 store.dispatch
+		const logger = (store) => (next) => (action) =>{
+			console.log("dispatching:", action);
+			const result = next(action);
+			console.log("next state", store.getState());
+			return result;
+		}
+		// 崩溃报告和错误报告
+		const crashReport = (store) => (next) => (action) =>{
+			try{
+				return next(action)
+			}catch(err){
+				console.error('Caught an exception!', err)
+				// 崩溃检测
+				// ... 
+			}
+		}
+    // 异步支持中间件
+    // update: 2019-04-24
+		const thunkMiddleware = (store) => (next) => (action) =>{ 
+      console.log("thunkMiddleware");
+      // 使 next 内部可以使用原生 dispatch 
+      if(typeof action === 'function'){
+        return action(dispatch)
+      }
+      return next(action)
+		}
+
+    // 异步支持中间件 redux-saga
+    // update: 2019-04-24
+		const createSagaMiddleware = (...generators) => {
+      // 持续调用 async generator 的 next() O(n^2)
+      // 
+			return (store) => (next) => (action) => {
+        // if generator is PUT return next(action)
+        // if generator is CALL return action()
+			}
+    }
+    // redux-saga/effects 提供的函数 { put, call, takeEvery, all }
+    // Effect 类型是 PUT 那 middleware 会 dispatch 一个 action 到 Store，put() 放在 generators { PUT } 中 
+    // Effect 类型是 CALL 那么它会调用给定的函数，call() 放在 generators { CALL } 中 
+    // Effect 类型是 TAKEEVERY 那么会生成一个新的 action 创建函数 ?
+    const effects = {
+      call(fn, ...args){
+
+      },
+      put(action){
+        
+      }
+    }
+
+		// middlewares 可以用数组形式传递
+		const applyMiddleware = (...middlewares) => (store) =>{
+			let dispatch = store.dispatch;
+			middlewares.map(m=>{
+				dispatch = m(store)(dispatch);
+			})
+			return Object.assign({}, store, {dispatch});
+		}
+
+		// async generator function
+		// const someAsyncGen = *funciton(){
+
+		// }
+
+		// library from redux
+		class Redus {
+			constructor(){
+				this._store = this._storeInit();
+				this.setState({})
+			}
+
+			/*** store 生成函数
+			 * @param reducer Function action 与 state 的映射函数，生成新的state
+			 * @param enhancer Function 增强函数，增强 dispatch 功能，例如中间件 ：middleware
+			 * @return Object store 实例
+			 */
+			createStore(reducer = {}, enhancer){
+				// 注册 reducer 
+				this._reducer = reducer;
+				let store = this._store;
+				if(enhancer){
+						store = enhancer(store);
+				}
+				// 注册 store
+				this._store = store
+				// 初始化 
+				// 假设此处注册的 reducer 会直接使用一次 state 
+				store.dispatch();
+				return store;
+			}
+
+			/*** 组件连接器
+			 * @param mapStateToProps Function     将state映射成 props 对象
+			 * @param mapDispatchToProps Function  将dispatch 映射成 props 对象
+			 * @return 生成绑定后的组件，此处为 ReactElement
+			 */
+			connect(mapStateToProps, mapDispatchToProps){
+				const store = this._store;
+				const propsFromState    = mapStateToProps(this.state)
+				const propsFromDispatch = mapDispatchToProps(store.dispatch)
+
+				return function(e){
+					// <element {...propsFromState} {...propsFromDispatch} />
+					let props = Object.assign({}, e.props, propsFromState, propsFromDispatch)
+					return e(props)
+				}
+			}
+
+			// 返回的是 reducer 不是 state 
+			// conbinReducer 是 enhancer function
+			combineReducer(...reducers){ 
+				return (state={}, action) => {
+					// 简单实现：
+					// let nextState = {}
+					// reducers.map(r=>{
+					// 	nextState[r.name] = r(state, action);
+					// })
+					// return nextState;
+					
+					// 优雅实现：
+					return Object.keys(reducers).reduce((nextState, k)=>{
+						const name = reducers[k].name
+						nextState[name] = reducers[k](state[name], action);
+						return nextState;
+					}, {});
+				}
+			}
+			// combineReducer(...reducers){
+			// 	const reducer = {};
+			// 	reducers.map(r=>{
+			// 		reducer[r.name] = r
+			// 	})
+			// 	return reducer;
+			// }
+
+			// 
+			setState(state){
+				const preState = this._store.getState();
+				this.state = Object.assign({}, state);
+				// diff 比对，是否触发 dom 操作
+				// console.log(preState, this.state)
+			}
+
+			// 返回维持 state树 的一个对象
+			_storeInit(){ 
+				const _this = this;
+				return {
+					getState(){
+						return _this.state;
+					},
+					// 触发事件
+					dispatch(action){
+						// 利用 action 映射 state
+						const reducer = _this._reducer;
+						const state = _this.state;
+						const nextState = reducer(state, action)
+						_this.setState(Object.assign({}, state, nextState))
+					},
+					// 事件订阅
+					subscribe(listener){
+						return this._unSubscirbe;
+					},
+					// 取消订阅
+					_unSubscirbe(){
+
+					}
+				}
+			}
+
+		}
+
+		// state
+		// 仅作为规划，不应用在项目中
+		const initalState = {
+			text: {
+				status: '',
+				content: "...",
+				click: function(){}
+			},
+			other: {
+				name: ""
+			}
+		}
+		// action
+		// 默认 action type 是 string 
+		/* action 
+		 * { type: 'ADD_TODO', text: 'Use Redux' } 也为 action 
+		 * 生成函数(action creater ) function (){ return { type: 'ADD_TODO', text: 'Use Redux' }; }
+		 * 生成 ation creater，function (){ return () => { type: 'ADD_TODO', text: 'Use Redux' } }
+		 * 异步，生成 action creater，利用中间件对 dispatch 处理 function fetchPosts (action){ return (dispatch) =>{
+		 		dispatch(createAction(action));
+				return fetch(`url`).then(()=>{}).then(()=>{});
+		 }}
+		 store
+		  .dispatch(fetchPosts('reactjs'))
+		  .then(() => console.log(store.getState()))
+		 *
+		 */
+		const SHOW_ALL = "SHOW_ALL";
+		// components
+		const textComponent = ({content, onClick})=>{
+			const button = React.createElement(
+				'button',
+				{
+					onClick: ()=>onClick(SHOW_ALL)
+				},
+				'click'
+			)
+			const p = React.createElement(
+				'p',
+				{
+			    className: 'greeting',
+			  },
+			  content
+			)
+			return React.createElement(
+				"div",
+				{},
+				p, button
+			)
+		}
+		// 应用
+		const r = new Redus();
+		/** reducer 有 action 到 state 的纯函数映射
+		 *  生成函数（reducer creater），例如
+				function createReducer(initialState, handlers) {
+				  return (state = initialState, action) => {
+				    if (handlers.hasOwnProperty(action.type)) {
+				      return handlers[action.type](state, action);
+				    } else {
+				      return state;
+				    }
+				  }
+				}
+		 *
+		 */
+		// text reducer
+		const text = (state = {}, action)=>{
+			switch(action){
+				case "SHOW_ALL":
+					return Object.assign({}, state, {
+		        content: "all content",
+		        status: 'show'
+		      })
+				default:
+					return {
+						content: "default content",
+					};
+			}
+		}
+		// other reducer
+		const other = (state = {}, action)=>{
+			switch(action){
+				case "SHOW_ALL":
+					return Object.assign({}, state, {
+		        name: "all name",
+		      })
+				default:
+					return {
+						name: "default name",
+					};
+			}
+		}
+		// text(initalState.text, SHOW_ALL);
+		const reducer = r.combineReducer(text, other);
+
+		const store = r.createStore(reducer, applyMiddleware(
+			logger,
+			crashReport
+		));
+		// thunk action 包含 dispatch ，通过包含高阶函数异步流程控制实现异步
+		// console.log(store.getState())
+		// 此处只针对 textComponent
+		// 对 state.A => state.B 的映射，增加关联
+		function changeContent(state){
+			if(state.status === "show"){
+				state.content = "show:"+state.content
+			}else {
+				state.content += ", changed";
+			}
+			return state;
+		}
+		const mapStateToProps = (state) => changeContent(state.text)
+		const mapDispatchToProps = dispatch => ({
+			onClick: (action) => {
+				dispatch(action)
+			}
+		})
+		const textComponentPended = r.connect(
+			mapStateToProps, 
+			mapDispatchToProps
+		)(textComponent)
+
+		// ReactDOM.render(textComponent(initalState.text, initalState.text.onClick), document.getElementById('root'));
+		ReactDOM.render(textComponentPended, document.getElementById('root'));
+
+	</script>
+</body>
+</html>

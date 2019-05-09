@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script>
+const setDelay = (millisecond) => {
+  return new Promise((resolve, reject)=>{
+      if (typeof millisecond != 'number') reject(new Error('参数必须是number类型'));
+      setTimeout(()=> {
+        resolve(`我延迟了${millisecond}毫秒后输出的`)
+      }, millisecond)
+  })
+}
+
+const setDelaySecond = (seconds) => {
+  return new Promise((resolve, reject)=>{
+      if (typeof seconds != 'number' || seconds > 10) reject(new Error('参数必须是number类型，并且小于等于10'));
+      setTimeout(()=> {
+        resolve(`我延迟了${seconds}秒后输出的，是第二个函数`)
+      }, seconds * 1000)
+  })
+}
+
+setDelay(2000)
+.then((result)=>{
+  console.log(result)
+  console.log('我进行到第一步的');
+  return setDelaySecond(3)
+})
+.then((result)=>{
+  console.log('我进行到第二步的');
+  console.log(result);
+}).catch((err)=>{
+  console.log(err);
+})
+	</script>
+</body>
+</html>

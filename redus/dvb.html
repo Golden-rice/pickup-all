@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script>
+	/* 包含 react-router，利用路由访问，每一个 App 都独立书写相关的  service component/contianer reducer action(可省略)
+	 * const Root = () => (
+			  <Router>
+			    <Route path="/" component={App} />
+			  </Router>
+			)
+	 * 包含 redux-saga ，一个中间件，主要处理 reducer + action 与 component/contianer 用异步函数（async function）实现 action function，便于触发事件
+	 * dva 中的概念里 state 相当于 store ，model 概念是基于 redux-router 的路由分配关系声明 namespace，利用 redux-saga 来封装异步操作， reducer 保留原来的作用，但是对此进行了封装
+	 * component 同于 redux
+	 * 其他： /util 封装工具 /assets 静态资源 /public 公共资源
+	 */ 
+	 /* 概念：
+	  * dva 将各个应用利用router切割，每一个有独立的model state component 等
+	  * dva 统一 view 层
+	  */
+	// dva package 
+	export default function dva() {
+			// app 应用
+			// =>箭头函数 this 锚定在声明处，不会改变
+			return {
+				// redux-router
+				router(router){
+					// <Provider store='store'><Router path=''></Provider>
+				},
+				// 绑定
+				start(domId){
+					// ReactDOM.render( ReacElements, document.getElementById(domId));
+				},
+				model(model){
+					// model.namespace 访问相应的 store
+					// model.state 初始化 state
+					// model.reducers redux 中的 reducer，
+					// model.effects(option, {call, put})
+					// model.subscriptions
+				}
+			}
+	}
+
+	export function connect(){
+
+	} 
+	// 代理
+	export function call(opts = {}){
+		
+	}	
+
+	 // 应用案例
+
+		const App = () => `<div>Hello dva</div>`;
+
+		// 创建应用 
+		// app 
+		const app = dva();
+		// 注册视图 react-router
+		app.router(() => <App />);
+		// 启动应用 对 ReactDOM.render 的封装
+		app.start('#root');
+	</script>
+	<script>
+
+	</script>
+</body>
+</html>
