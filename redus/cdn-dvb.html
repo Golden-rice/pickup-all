@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script>
+	  /***dva 集合 roadhog/dva-cli/npm init/dva-core/redux/redux-saga middleware/react-router
+	   *  dva-cli: dva g route users -> 生成 route, url: http://localhost:8000/#/users
+	   *           dva g model users -> 生成 model
+	   *           dva g component Users/Users -> 生成 
+	   *  手动添加 service
+	   */
+
+		/**
+		 ********************************************
+		 * index.js: /src/index.js 
+		 * 实例化 app， const app = dva();  
+		 * （*选填）app.model() redux-saga middleware，reducer，扩展了 subscribe hooks，namespace，定位 store
+		 * 代理路由 app.router(RouterConfig); react-redux 链接：提供 create store，setReducerToProps setStateToProps，<Provider store='store'><Router path=''> connetc()() 绑定组件
+		 * 代理方法，启动 app.start('#root'); 为app model 增加 view 层，ReactDOM.render()
+		 */
+		// dva-core
+		// import core from 'dva-core';
+		// import router from 'redux-router';
+		// import { Provider } from 'redux';
+		class core{
+			create(){
+				// import Plugin ?
+				const plugin = new Plugin;
+				return {
+					_models: [],
+					_router: null,
+					_store: null,
+					_hidtory: null,
+					_plugin: plugin,
+					_getProvider: null,
+					use,
+					model,
+					router,
+					start
+				};
+			}
+			start(){}
+		}
+		export const dva = function(opt={}){
+			/* 
+			 * @params { history }
+
+			 */
+			const app = core.create();
+
+			// 重构的 start 
+			const start = function(container){
+				// 检测代码合法性
+				// ... 
+				// 代理模式处理 start 
+				const oldStart = core.start;
+
+				// 获取 dom
+				container = document.querySelector(container);
+
+				// 执行
+				oldStart.call(app);
+
+				// 复制执行后的上下文环境
+				const store = app._store;
+
+				const getProvider = function( store, app, router){
+					// 内部使用 react-redux 的高阶函数
+				  // return extraProps => (
+				  //   <Provider store={store}>
+				  //     { router({ app, history: app._history, ...extraProps }) }
+				  //   </Provider>
+				  // );					
+				}
+
+				const render = function(store, app, router) {
+					// 内部使用 react-dom
+					// ReactDOM.render(React.createElement(getProvider(store, app, router)), container);
+				}
+
+				// fix bug in HMR bind(this[, ...arguments]);
+				app._getProvider = getProvider.bind(null, store, app);
+
+				// 使用高阶函数创建视图 view
+				// 传递收据至 model 层
+				// 
+			}
+
+			// 重构的 router
+			const router = function({ routerCreate } = {}){
+				// 路由
+				const router = routerCreate();
+
+				// react-router
+				// import Component from '';
+				// <Route exact path="/" component=Component/>
+			}
+
+			// 插件
+			const use = function(){}
+
+			// advanced reducer, *saga-middleware => extends effect, *subscriptions, namespace
+			const model = function(model){
+				// app._model.set(model) => app._model
+				// 遍历 app._model 
+
+				// model.namespace => combineReducer => store
+			}
+
+			// 安装
+			app.start = start;
+			app.router = router;
+			app.use = use;
+			app.model = model;
+
+			return app;
+		} 
+
+		// redux connect 的增强，直接应用在component上
+		// 使用举例 const Page = connect(mapStateToProps)(App)
+		export const connectAdvanced = function({setStateToProps, setReducerToProps} = {}){
+
+			return (WrappedComponent) =>{
+				// 
+				class Connect extends Component {
+
+				}
+
+				// import hoistStatics from 'hoist-non-react-statics'
+				// 返回绑定的的 component
+				return hoistStatics(Connect, WrappedComponent)  
+			}
+		}
+
+		
+
+
+		/**
+		 ********************************************
+		 * model: /src/models/
+		 */
+
+		// ui components: s/rc/components/
+
+		// route: /src/routes 各个app
+
+		// service: /src/services
+
+		// utils 工具包 /src/utils
+
+		// assets 静态资源包 /src/assets
+
+		// router.js
+	</script>
+</body>
+</html>

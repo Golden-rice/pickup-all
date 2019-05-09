@@ -1,0 +1,15 @@
+extend ../layout
+
+block content
+    .container
+        .row
+            each item in movies
+                .col-md-3
+                    .thumbnail(style="height:500px")
+                        a(href="/detail/#{item._id}")
+                            img(src="/upload/#{item.poster}", alt="#{item.title}")
+                        .caption
+                            h3 #{item.title}
+                            p
+                                a.btn.btn-primary(href="/movie/#{item._id}", role="button") 观看详情
+                                
