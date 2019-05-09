@@ -23,8 +23,8 @@ coverage
 build/Release
 
 # Dependency directory
-node_modules/
-**/node_modules/
+node_modules
+**/node_modules
 
 # Bower
 bower_components/
@@ -35,7 +35,7 @@ bower_components/
 # f2e
 .f2econfig.js
 
-# aliyun
+# nohup log
 nohup.out
 
 # production
@@ -52,19 +52,3 @@ Icon
 
 # Thumbnails
 ._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
