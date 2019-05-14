@@ -22,10 +22,6 @@ coverage
 # Compiled binary addons (http://nodejs.org/api/addons.html)
 build/Release
 
-# Dependency directory
-node_modules
-**/node_modules
-
 # Bower
 bower_components/
 
@@ -38,9 +34,6 @@ bower_components/
 # nohup log
 nohup.out
 
-# production
-dist
-
 ### macOS template
 # General
 .DS_Store
@@ -52,3 +45,20 @@ Icon
 
 # Thumbnails
 ._*
+
+# dependencies
+/node_modules
+/npm-debug.log*
+/yarn-error.log
+/yarn.lock
+/package-lock.json
+
+# production
+/dist
+
+# misc
+.DS_Store
+
+# umi
+.umi
+.umi-production

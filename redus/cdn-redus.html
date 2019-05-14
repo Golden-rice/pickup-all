@@ -68,12 +68,19 @@ return Object.assign({}, state, nextState)
 			}
     }
     // redux-saga/effects 提供的函数 { put, call, takeEvery, all }
+    // 声明式函数可以解决不用真实调用函数，而是通过传参的方式检查函数和参数是否正确
     // Effect 类型是 PUT 那 middleware 会 dispatch 一个 action 到 Store，put() 放在 generators { PUT } 中 
-    // Effect 类型是 CALL 那么它会调用给定的函数，call() 放在 generators { CALL } 中 
+    // Effect 类型是 CALL 那么它会调用给定的函数，call() 放在 generators { CALL } 中，不会立即执行，利用 { fn, arg } 描述函数和函数的参数（这样的描述叫做声明式调用）
     // Effect 类型是 TAKEEVERY 那么会生成一个新的 action 创建函数 ?
+    // 在 effects 中，generator 函数会会自动轮询——执行 next()，在 effects 声明式调用中会统一调用（如正常函数调用一样，优势是使用内部函数执行，解决返回结果为promise时，对resolve、refuse的封装执行 ），且内部会判断 { value, done } done === false 则继续执行
     const effects = {
       call(fn, ...args){
-
+        var ret = fn.call(args)
+        // 返回结果为 promise 
+        // promise 内部封装了 resolve 和 refuse，此处只返回结果，
+        if( typeof ret === "promise" ){
+          return ret;
+        }
       },
       put(action){
         

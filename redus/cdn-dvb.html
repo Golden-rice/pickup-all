@@ -134,8 +134,20 @@
 				return hoistStatics(Connect, WrappedComponent)  
 			}
 		}
-
-		
+    /**
+     * @param url  请求地址
+     * @param option http header
+     */
+		export const fetch = function(url, option){
+      const header = { ...option } 
+      // xmlrequest
+      // get from url
+      const resolve
+      const refuse
+      // promise 是为了解决异步回调函数书写问题，本质上是等同于异步的回调函数
+      const p = new Promise(resolve, refuse);
+      return p;
+    }
 
 
 		/**
