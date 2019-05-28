@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+  // 变量提升及闭包
+  var name = 'world';
+  ;(function(name){
+    if(typeof name === 'undefined' ){
+      var name = 'jake'
+      console.log('this is '+name)
+    }else{
+      console.log('hello')
+    }
+  })(name)
+
+  // 数组声明
+  var arr = [1,2,3]
+  arr[10] = 10; // 用 empty 标识未声明的部分
+  // filter 会过滤 empty ，查询时会返回 undefined
+  arr.filter(function(x){
+    console.log(x, x===undefined)
+    return x===undefined
+  })
+  </script>
+</body>
+</html>
