@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <script src="./index.js"></script>
+  <title>Peact Demo</title>
+</head>
+<body>
+  <script>
+    const MyPeactClass = Peact.createClass({
+      render(){
+        // !!! this.props 是为了表示 message 与 spec 关系
+        return Peact.createElement('h1', null, this.props.message);
+      }
+    })
+    let MyTitle = new MyPeactClass({
+      message: "Hello World!"
+    })
+    Peact.render(
+      MyTitle,
+      document.body
+    )
+
+    // create a Peact element
+    let MyDiv = Peact.createElement("div", null, "this is a div")
+    Peact.render(
+      MyDiv,
+      document.body
+    )
+  </script>
+</body>
+</html>
