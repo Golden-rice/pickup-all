@@ -151,12 +151,9 @@ const Peact = {
   render(element /* Peact class or Peact element */, container){
     // 类型判断
     if( element.isPeactCreate && element.isPeactCreate() ){
-      // wrapperElement 包含 type 为构造函数，props为组件 element，children = null，prototype.render 函数，
+      // wrapperElement { type: ComponentWrapper, props: element, children: undefined } 
       const wrapperElement = this.createElement(ComponentWrapper, element);
-      // 利用 type 执行构造
-      // 将 element 赋值给 this.props (此处的element 可能是 Peact element，也可能是 Peact class)
-      // 执行 prototype.render() 返回 this.props
-      // 如果是 Peact element， PeactDOMComponent() 
+
       const componentInstance = new PeactCompositeComponentWrapper(wrapperElement);
       return componentInstance.mountComponent(container);
     }

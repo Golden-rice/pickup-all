@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // es6 class 实现
+class PeactDOMComponent {
+    constructor(element /* Peact element */){
+        this._currentElement = element
+    }
+    // 安装DOM节点
+    mountComponent(container){
+        // create HTML dom
+        const domElement = document.createElement(this._currentElement.type);
+        // 显式表现结果
+        const children = this._currentElement.props.children;
+        const props = this._currentElement.props
+        if( typeof children === "string" ){
+            const textNode = document.createTextNode(children);
+            domElement.appendChild(textNode);
+        }
+
+        container.appendChild(domElement);
+        return domElement;
+    }
+}
+    class PeactCompositeComponentWrapper {
+    constructor(element) {
+        this._currentElement = element;
+    }
+
+    // 安装 component
+    mountComponent(container) {
+        const Component = this._currentElement;
+        let element = Component
+    if (typeof Component === 'function') {
+        // render 为 Peact class 声明时的 render
+        element = (new Component()).render();
+    }
+
+        // 确保此处的 element 为 Peact element
+        const domComponentInstance = new PeactDOMComponent(element);
+        domComponentInstance.mountComponent(container);
+    }
+}    
+function createElement (type, props, children){
+    const element = {
+        type,
+        props: props || {}
+    };
+
+    if (children) {
+       element.props.children = children;
+    }
+    return element;
+}
+
+function createClass( sepc ){
+    // create a Peact class
+    function ElementClassConstructor(props){
+        this.props = props
+        //
+    }
+    // render 为必须函数
+    if( !sepc.render ){
+        console.error("Required render function!")
+        return {};
+    }
+    ElementClassConstructor.prototype.render = sepc.render
+    return ElementClassConstructor
+}
+
+function render(element /* Peact class or Peact element */, container){
+    const componentInstance = new PeactCompositeComponentWrapper(element);
+    return componentInstance.mountComponent(container);
+}
+
+const Peact = {
+    /**
+     * 创造 Peact element
+     * @param {*} type (String) dom 类型
+     * @param {*} props (Object) Peact element 属性
+     * @param {*} children (Peact element or Dom or Basic type) 子节点
+     */
+    createElement,
+    /**
+     * 创造 Peact class
+     * @param {*} sepc Peact class 声明
+     */
+    createClass,
+    /* 渲染函数 
+     * @param {*} element Peact class 或 Peact element 
+     * @param {*} container 容器DOM节点
+     */
+    render,
+}
+
+const MyPeactClass = Peact.createClass({
+    render(){
+        this.props = { msg: "Hi!" }
+        return Peact.createElement('h1', null, this.props.msg );
+    }
+})
+
+Peact.render(
+    MyPeactClass,
+    document.body
+)
+
+// create a Peact element
+let MyDiv = Peact.createElement("div", null, "this is a div")
+Peact.render(
+    MyDiv,
+    document.body
+)
+    </script>
+</body>
+</html>
