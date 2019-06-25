@@ -4,15 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <script src="../jer/jer.js"></script>
+  <script src="../javascript-basic/util.js"></script>
   <script src="./index.js"></script>
   <title>Peact Demo</title>
 </head>
 <body>
   <script>
+    function notThis(){
+      console.log(this)
+    }
     // create a Peact class
     const MyPeactClass = Peact.createClass({
+      test(){
+        console.log("this is test")
+        console.log('this is THIS pointer: ', this)
+        console.log('this is PROPS: ', this.props)
+        console.log('this is STATE: ',this.state)
+      },
+      say: notThis,
       render(){
-        return Peact.createElement('h1', null, "Hi!");
+        this.props = { msg: "Hi!" }
+        // this.test()
+        // this.say()
+        return Peact.createElement('h1', { 
+          onClick: function(){
+            alert("Hi!")
+          }
+        }, this.props.msg );
       }
     })
 
@@ -27,6 +46,9 @@
       MyDiv,
       document.body
     )
+
+    // just render
+    Peact.render("this is text", document.body)
   </script>
 </body>
 </html>

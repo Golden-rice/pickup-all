@@ -221,6 +221,8 @@ jer.fn = jer.prototype = {
 
 	// 插件接口
 	extend: function(){
+    // 简单实现 for ... in 浅拷贝（source内部仍然保持引用关系），且target 的原型链不继承
+    // 深拷贝，注意数组和 object 类型
 		var options, copy, name,
 			i = 1,
 			target = arguments[0] || {},
