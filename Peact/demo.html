@@ -9,17 +9,15 @@
 </head>
 <body>
   <script>
+    // create a Peact class
     const MyPeactClass = Peact.createClass({
       render(){
-        // !!! this.props 是为了表示 message 与 spec 关系
-        return Peact.createElement('h1', null, this.props.message);
+        return Peact.createElement('h1', null, "Hi!");
       }
     })
-    let MyTitle = new MyPeactClass({
-      message: "Hello World!"
-    })
+
     Peact.render(
-      MyTitle,
+      MyPeactClass,
       document.body
     )
 
