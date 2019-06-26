@@ -1,6 +1,4 @@
-/**
- * 高阶函数：封装后的 this.props 传递 Peact 实际用于绘制的类型（element or class）
- */
+// 高阶函数：封装后的 this.props 传递 Peact 实际用于绘制的类型（element or class）
 const ComponentWrapper = function(props) {
   this.props = props;
 };
@@ -29,10 +27,10 @@ let extend = Util.extend
 
 // 此处的 function 写法与 class 写法虽不一致，但基本逻辑一样
 // Peact 文本组件 string or number
-function PeactTextComponent (text) {
+function PeactDOMTextComponent (text) {
   this._currentElement = '' + text;
 }
-PeactTextComponent.prototype.mountComponent = function(container){
+PeactDOMTextComponent.prototype.mountComponent = function(container){
   const domElement = document.createElement("span");
   domElement.innerHTML = this._currentElement
   container.appendChild(domElement);
@@ -40,6 +38,7 @@ PeactTextComponent.prototype.mountComponent = function(container){
 }
 
 // Peact 基础组件
+// 管理 html 标签对应的组件
 class PeactDOMComponent {
   constructor(element /* Peact element */){ 
     this._currentElement = element
@@ -65,14 +64,16 @@ class PeactDOMComponent {
 }
 
 /**
- * 对 Peact 封装的高阶组件进行计算
+ * 对 Peact 封装的高阶组件进行计算，管理自定义组件对应的PeactElement
  */
 class PeactCompositeComponentWrapper {
   constructor(element) {
     this._currentElement = element;
   }
 
+  // 安装 component
   mountComponent(container) {
+    // this._currentElement { type: ComponentWrapper, props: element, children: undefined }
     // Component 就是 ComponentWrapper 构造函数
     const Component = this._currentElement.type;
     // this._currentElement.props 就是 Peact.render() 第一个参数
@@ -138,7 +139,7 @@ const Peact = {
     }
     // extend 手动支持
     else{
-
+      ElementClassConstructor.prototype = extend(ElementClassConstructor.prototype, sepc)
     }
 
     ElementClassConstructor._t_ = "PeactClass"
@@ -151,18 +152,15 @@ const Peact = {
   render(element /* Peact class or Peact element */, container){
     // 类型判断
     if( element.isPeactCreate && element.isPeactCreate() ){
-      // wrapperElement 包含 type 为构造函数，props为组件 element，children = null，prototype.render 函数，
+      // wrapperElement { type: ComponentWrapper, props: element, children: undefined } 
       const wrapperElement = this.createElement(ComponentWrapper, element);
-      // 利用 type 执行构造
-      // 将 element 赋值给 this.props (此处的element 可能是 Peact element，也可能是 Peact class)
-      // 执行 prototype.render() 返回 this.props
-      // 如果是 Peact element， PeactDOMComponent() 
+
       const componentInstance = new PeactCompositeComponentWrapper(wrapperElement);
       return componentInstance.mountComponent(container);
     }
     // DOM or basic
     else if(typeof element === "string" || typeof element === "number"){
-      const componentInstance = new PeactTextComponent(element);
+      const componentInstance = new PeactDOMTextComponent(element);
       return componentInstance.mountComponent(container);
     }
   }
