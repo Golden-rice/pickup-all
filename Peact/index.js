@@ -1,24 +1,24 @@
 // 高阶函数：封装后的 this.props 传递 Peact 实际用于绘制的类型（element or class）
-const ComponentWrapper = function(props) {
+const ComponentWrapper = function (props) {
   this.props = props;
 };
-ComponentWrapper.prototype.render = function() {
+ComponentWrapper.prototype.render = function () {
   return this.props;
 };
 
 // 类型判断：是否为 Peact 元素
-function isPeactCreate () {
+function isPeactCreate() {
   const t = this._t_
-  if( t === "PeactElement" || t === "PeactClass" ) {
+  if (t === "PeactElement" || t === "PeactClass") {
     return true
   }
   return false;
 }
 
 // state 初始化
-function initialState(){
+function initialState() {
   this.state = {}
-  this.getInitialState = function(){
+  this.getInitialState = function () {
     return this.state
   }
 }
@@ -27,10 +27,10 @@ let extend = Util.extend
 
 // 此处的 function 写法与 class 写法虽不一致，但基本逻辑一样
 // Peact 文本组件 string or number
-function PeactDOMTextComponent (text) {
+function PeactDOMTextComponent(text) {
   this._currentElement = '' + text;
 }
-PeactDOMTextComponent.prototype.mountComponent = function(container){
+PeactDOMTextComponent.prototype.mountComponent = function (container) {
   const domElement = document.createElement("span");
   domElement.innerHTML = this._currentElement
   container.appendChild(domElement);
@@ -40,22 +40,23 @@ PeactDOMTextComponent.prototype.mountComponent = function(container){
 // Peact 基础组件
 // 管理 html 标签对应的组件
 class PeactDOMComponent {
-  constructor(element /* Peact element */){ 
+  constructor(element /* Peact element */ ) {
     this._currentElement = element
   }
   // 绘制真实的DOM节点
-  mountComponent(container){
+  mountComponent(container) {
     // create HTML dom 
     const domElement = document.createElement(this._currentElement.type);
     // 显式表现结果
     const children = this._currentElement.props.children;
     const props = this._currentElement.props
-    if( typeof children === "string" ){
-      const textNode = document.createTextNode(children);
+    // 目前先支持 一个子节点
+    if (typeof children[0] === "string") {
+      const textNode = document.createTextNode(children[0]);
       domElement.appendChild(textNode);
     }
     // 注册事件监听
-    if( props.onClick ){
+    if (props.onClick) {
       domElement.onclick = props.onClick
     }
     container.appendChild(domElement);
@@ -100,72 +101,93 @@ const Peact = {
    * @param {*} props     (Object) Peact element 属性
    * @param {*} children  (Peact element or Dom or Basic type) 子节点 
    */
-  createElement(type, props, children){ 
-    /* create a Peact element */ 
-    const element = {
-      type,
-      props: props || {},
-      _t_: "PeactElement",
-      isPeactCreate: function(){
-        return isPeactCreate.call(this)
-      }
-    };
-
-    if (children) {
-      element.props.children = children;
+  createElement(type, config, children) {
+    /* create a Peact element */
+    function Element(type, key, props) {
+      this.type = type
+      this.key = key;
+      this.props = props;
     }
-    return element;
+
+    let props = extend({}, config)
+
+    // 支持不定参数，并均合并至 children 中
+    var childrenLength = arguments.length - 2;
+    if (childrenLength === 1) {
+      props.children = Array.isArray(children) ? children : [children];
+    } else if (childrenLength > 1) {
+      var childArray = [];
+      for (var i = 0; i < childrenLength; i++) {
+        childArray[i] = arguments[i + 2];
+      }
+      props.children = childArray;
+    }
+
+    return new Element(type, null, props)
   },
   /**
    * 创造 Peact class
    * @param {*} sepc   Peact class 声明
    */
-  createClass( sepc ){
+  createClass(sepc) {
     // create a Peact class
-    function ElementClassConstructor(props){
+    function ElementClassConstructor(props) {
       this.props = props
       initialState.call(this)
     }
     // render 为必须函数
-    if( !sepc.render ){
+    if (!sepc.render) {
       console.error("Required render function!")
       return {};
     }
 
     // 支持全部方法
     // es6 Object.assign 仅适用浅拷贝
-    if( Object.assign ){
+    if (Object.assign) {
       ElementClassConstructor.prototype = Object.assign(ElementClassConstructor.prototype, sepc)
     }
     // extend 手动支持
-    else{
+    else {
       ElementClassConstructor.prototype = extend(ElementClassConstructor.prototype, sepc)
     }
 
-    ElementClassConstructor._t_ = "PeactClass"
-    ElementClassConstructor.isPeactCreate = function(){
-      return isPeactCreate.call(this)
-    }
-    
     return ElementClassConstructor
   },
 
 }
 
 const PeactDOM = {
-  render(element /* Peact class or Peact element */, container){
-    // 类型判断
-    if( element.isPeactCreate && element.isPeactCreate() ){
-      // wrapperElement { type: ComponentWrapper, props: element, children: undefined } 
-      const wrapperElement = Peact.createElement(ComponentWrapper, element);
-
-      const componentInstance = new PeactCompositeComponentWrapper(wrapperElement);
-      return componentInstance.mountComponent(container);
+  /**
+   * 根据元素类型实例化一个具体的component
+   * @param {*} node ReactElement
+   * @return {*} 返回一个具体的component实例
+   */
+  instantiatePeactComponent(node) {
+    // 文本节点的情况
+    if (typeof node === "string" || typeof node === "number") {
+      return new PeactDOMTextComponent(node);
     }
-    // DOM or basic
-    else if(typeof element === "string" || typeof element === "number"){
-      const componentInstance = new PeactDOMTextComponent(element);
-      return componentInstance.mountComponent(container);
-    }
+    // 自定义的元素节点及原生DOM
+    // wrapperElement { type: ComponentWrapper, props: node, children: undefined } 
+    const wrapperNode = Peact.createElement(ComponentWrapper, node);
+    return new PeactCompositeComponentWrapper(wrapperNode);
+  },
+  render(element /* Peact class or Peact element */ , container) {
+    const componentInstance = PeactDOM.instantiatePeactComponent(element)
+    return componentInstance.mountComponent(container);
   }
+}
+
+// es6 支持
+// Peact基础组件
+class Component {
+  constructor() {
+    this.props = {}
+    this.state = {}
+  }
+  // state 设置函数
+  setState() {}
+  // 声明周期函数
+  // ...
+  render() {}
 }
