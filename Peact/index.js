@@ -149,11 +149,15 @@ const Peact = {
     
     return ElementClassConstructor
   },
+
+}
+
+const PeactDOM = {
   render(element /* Peact class or Peact element */, container){
     // 类型判断
     if( element.isPeactCreate && element.isPeactCreate() ){
       // wrapperElement { type: ComponentWrapper, props: element, children: undefined } 
-      const wrapperElement = this.createElement(ComponentWrapper, element);
+      const wrapperElement = Peact.createElement(ComponentWrapper, element);
 
       const componentInstance = new PeactCompositeComponentWrapper(wrapperElement);
       return componentInstance.mountComponent(container);
