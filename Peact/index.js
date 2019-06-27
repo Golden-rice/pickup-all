@@ -33,7 +33,7 @@ function PeactDOMTextComponent(text) {
 PeactDOMTextComponent.prototype.mountComponent = function (container) {
   const domElement = document.createElement("span");
   domElement.innerHTML = this._currentElement
-  container.appendChild(domElement);
+  // container.appendChild(domElement);
   return domElement
 }
 
@@ -42,38 +42,53 @@ PeactDOMTextComponent.prototype.mountComponent = function (container) {
 class PeactDOMComponent {
   constructor(element /* Peact element */ ) {
     this._currentElement = element
+
   }
   // 绘制真实的DOM节点
-  mountComponent(container) {
+  mountComponent(nodeID) {
     // create HTML dom 
-    const domElement = document.createElement(this._currentElement.type);
-    // 显式表现结果
+    this._nodeID = nodeID
+
     const children = this._currentElement.props.children;
     const props = this._currentElement.props
+
+    const domElement = document.createElement(this._currentElement.type);
+    domElement.setAttribute("data-peactid", nodeID)
     // 目前先支持 一个子节点
-    if (typeof children[0] === "string") {
-      const textNode = document.createTextNode(children[0]);
-      domElement.appendChild(textNode);
-    }
+    // if (typeof children[0] === "string") {
+    //   const textNode = document.createTextNode(children[0]);
+    //   domElement.appendChild(textNode);
+    // }
     // 注册事件监听
     if (props.onClick) {
       domElement.onclick = props.onClick
     }
-    container.appendChild(domElement);
+
+    children.forEach((child, key) => {
+      let childComponentInstance = PeactDOM.instantiatePeactComponent(child)
+      let childID = nodeID + "." + key
+      childComponentInstance._mountIndex = key;
+      let childDomElement = childComponentInstance.mountComponent(childID)
+      domElement.appendChild(childDomElement)
+    })
+
     return domElement;
   }
 }
 
-/**
- * 对 Peact 封装的高阶组件进行计算，管理自定义组件对应的PeactElement
- */
+// 对 Peact 封装的高阶组件进行计算，管理自定义组件对应的PeactElement
 class PeactCompositeComponentWrapper {
   constructor(element) {
     this._currentElement = element;
   }
 
+  // 接受 component 并准备更新
+  receiveComponent(nextElement, newState){
+    this._currentElement = nextElement || this._currentElement;
+  }
+
   // 安装 component
-  mountComponent(container) {
+  mountComponent(nodeID) {
     // this._currentElement { type: ComponentWrapper, props: element, children: undefined }
     // Component 就是 ComponentWrapper 构造函数
     const Component = this._currentElement.type;
@@ -89,7 +104,7 @@ class PeactCompositeComponentWrapper {
 
     // 确保此处的 element 为 Peact element
     const domComponentInstance = new PeactDOMComponent(element);
-    domComponentInstance.mountComponent(container);
+    return domComponentInstance.mountComponent(nodeID);
   }
 }
 
@@ -141,6 +156,10 @@ const Peact = {
       return {};
     }
 
+    ElementClassConstructor.prototype.setState = function(newState) {
+      this._peactInternalInstance.receiveComponent(null, newState);
+    };
+
     // 支持全部方法
     // es6 Object.assign 仅适用浅拷贝
     if (Object.assign) {
@@ -173,8 +192,12 @@ const PeactDOM = {
     return new PeactCompositeComponentWrapper(wrapperNode);
   },
   render(element /* Peact class or Peact element */ , container) {
+    const rootID = "peact"
     const componentInstance = PeactDOM.instantiatePeactComponent(element)
-    return componentInstance.mountComponent(container);
+    const component =  componentInstance.mountComponent(rootID);
+
+    // 渲染
+    container.appendChild(component);
   }
 }
 

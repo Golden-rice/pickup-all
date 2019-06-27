@@ -46,13 +46,23 @@
 
     // create a Peact element
     let MyDiv = Peact.createElement("div", null, "this is a div")
-    PeactDOM.render(
-      MyDiv,
-      document.body
-    )
+    // PeactDOM.render(
+    //   MyDiv,
+    //   document.body
+    // )
 
     // just render
-    PeactDOM.render("this is text", document.body)
+    // PeactDOM.render("this is text", document.body)
+
+    // create a Peact element
+    let MyH3 = Peact.createElement(
+      "div", null, 
+      Peact.createElement("h3", null, "this is inner child!")
+    )
+    PeactDOM.render(
+      MyH3,
+      document.body
+    )
 
     // extend class
     class App extends Component {}
