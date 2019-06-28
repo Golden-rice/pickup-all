@@ -1,26 +1,44 @@
+// [reactjs源码分析-下篇（更新机制实现原理）](https://github.com/purplebamboo/blog/issues/3)
+// [reactjs源码分析-上篇（首次渲染实现原理）](https://github.com/purplebamboo/blog/issues/2)
+// [React 源码解析](https://react.jokcy.me/)
+
+
 // 高阶函数：封装后的 this.props 传递 Peact 实际用于绘制的类型（element or class）
 const ComponentWrapper = function (props) {
   this.props = props;
 };
 ComponentWrapper.prototype.render = function () {
-  return this.props;
+  return this.props
 };
 
-// 类型判断：是否为 Peact 元素
-function isPeactCreate() {
-  const t = this._t_
-  if (t === "PeactElement" || t === "PeactClass") {
-    return true
+/**
+ * 通过比较两个元素，判断是否需要更新
+ * @param {*} preElement  旧的元素
+ * @param {*} nextElement 新的元素
+ * @return {boolean}
+ */
+function _shouldUpdatePeactComponent(prevElement, nextElement) {
+  // 判空
+  if( !prevElement || !nextElement ) return false;
+
+  // PeactDOMTextComponent
+
+  if (prevElement != null && nextElement != null) {
+    var prevType = typeof prevElement;
+    var nextType = typeof nextElement;
+    if (prevType === "string" || prevType === "number") {
+      // 文本节点比较是否为相同类型节点
+      return nextType === "string" || nextType === "number";
+    } else {
+      // 通过type 和 key 判断是否为同类型节点和同一个节点
+      return (
+        nextType === "object" &&
+        prevElement.type === nextElement.type &&
+        prevElement.key === nextElement.key
+      );
+    }
   }
   return false;
-}
-
-// state 初始化
-function initialState() {
-  this.state = {}
-  this.getInitialState = function () {
-    return this.state
-  }
 }
 
 let extend = Util.extend
@@ -30,45 +48,70 @@ let extend = Util.extend
 function PeactDOMTextComponent(text) {
   this._currentElement = '' + text;
 }
-PeactDOMTextComponent.prototype.mountComponent = function (container) {
+PeactDOMTextComponent.prototype.mountComponent = function (nodeID) {
+  this._nodeID = nodeID
   const domElement = document.createElement("span");
   domElement.innerHTML = this._currentElement
-  // container.appendChild(domElement);
   return domElement
 }
+PeactDOMTextComponent.prototype.receiveComponent = function(nextText) {
+  var nextStringText = "" + nextText;
+  // 跟以前保存的字符串比较
+  if (nextStringText !== this._currentElement) {
+    this._currentElement = nextStringText;
+    // 替换整个节点
+    // $('[data-reactid="' + this._nodeID + '"]').html(this._currentElement);
+  }
+};
 
 // Peact 基础组件
 // 管理 html 标签对应的组件
 class PeactDOMComponent {
   constructor(element /* Peact element */ ) {
     this._currentElement = element
-
   }
+
+  _updateDOMChildren(){}
+  _updateDOMProperties(lastProps, nextProps){
+    // 新属性替换旧属性
+    Object.assign(lastProps, nextProps)
+    // 更新属性
+  }
+
+  receiveComponent(nextElement){
+    var lastProps = this._currentElement.props;
+    var nextProps = nextElement.props;
+    this._currentElement = nextElement;
+    // 处理当前节点的属性
+    this._updateDOMProperties(lastProps, nextProps);
+    // 处理当前节点的子节点变动
+    this._updateDOMChildren(nextElement.props.children);
+  }
+
   // 绘制真实的DOM节点
   mountComponent(nodeID) {
+    // console.log(this._currentElement)
     // create HTML dom 
     this._nodeID = nodeID
-
+    const _PEACTCLASS_INSTANCE = this._currentElement._instancePointer
     const children = this._currentElement.props.children;
     const props = this._currentElement.props
 
     const domElement = document.createElement(this._currentElement.type);
     domElement.setAttribute("data-peactid", nodeID)
-    // 目前先支持 一个子节点
-    // if (typeof children[0] === "string") {
-    //   const textNode = document.createTextNode(children[0]);
-    //   domElement.appendChild(textNode);
-    // }
+    
     // 注册事件监听
     if (props.onClick) {
-      domElement.onclick = props.onClick
+      // domElement.onclick = props.onClick
+      domElement.onclick = function(){
+        return props.onClick.call(_PEACTCLASS_INSTANCE)
+      }
     }
 
     children.forEach((child, key) => {
       let childComponentInstance = PeactDOM.instantiatePeactComponent(child)
-      let childID = nodeID + "." + key
-      childComponentInstance._mountIndex = key;
-      let childDomElement = childComponentInstance.mountComponent(childID)
+      // childComponentInstance._mountIndex = key;
+      let childDomElement = childComponentInstance.mountComponent(nodeID + "." + key)
       domElement.appendChild(childDomElement)
     })
 
@@ -80,11 +123,35 @@ class PeactDOMComponent {
 class PeactCompositeComponentWrapper {
   constructor(element) {
     this._currentElement = element;
+    this._nodeID = null;
+    this._instance = null;  // 实例对象 PeactElement or PeactClass
   }
 
   // 接受 component 并准备更新
   receiveComponent(nextElement, newState){
     this._currentElement = nextElement || this._currentElement;
+    
+    const { state }  = this._instance;
+    const nextProps = this._currentElement.props 
+    const nextState = extend(state, newState)
+    const nextElement = this._currentElement
+    const prevElement = this._renderedElement
+    // update 
+
+    // 更新 state
+    this._instance.state = nextState
+
+    // shouldComponentUpdate
+    if ( this._instance.shouldComponentUpdate && this._instance.shouldComponentUpdate(nextProps, nextState)  === false )
+      return;
+    
+    this._instance.componentWillUpdate && this._instance.componentWillUpdate(nextProps, nextState)
+
+    // 比较 element 决定是否要更新
+    if (_shouldUpdateReactComponent(prevElement, nextElement)) {
+      // 遍历子节点
+      this._instance.componentDidUpdate && this._instance.componentDidUpdate()
+    }
   }
 
   // 安装 component
@@ -92,19 +159,38 @@ class PeactCompositeComponentWrapper {
     // this._currentElement { type: ComponentWrapper, props: element, children: undefined }
     // Component 就是 ComponentWrapper 构造函数
     const Component = this._currentElement.type;
-    // this._currentElement.props 就是 Peact.render() 第一个参数
+    // this._currentElement.props 就是 PeactDOM.render() 第一个参数
     const componentInstance = new Component(this._currentElement.props);
-    // 如果是 Peact element，则 element 是 Peact.render() 第一个参数，如果是 Peact class，element 就是 Peact.createClass 内部的构造函数 ElementClass
+    // 如果是 Peact element，则 element 是 PeactDOM.render() 第一个参数，也就是 New Element()
+    // PeactElement { type, props }
+    // 如果是 Peact class，element 就是 Peact.createClass 内部的构造函数 ElementClassConstructor
     let element = componentInstance.render();
+    this._instance = element
     // 对 element 类型判断决定，如果是 Peact class 则element 是构造函数，如果是 Peact element，element 是string，
     while (typeof element === 'function') {
       // render 为 Peact class 声明时的 render 
-      element = (new element(element.props)).render();
+      let elementClass = new element()
+      element = elementClass.render();
+      // 传递指针
+      elementClass._peactInternalInstance = this
+      // 继承声明的所有方法
+      element.__proto__ = elementClass.__proto__
+      element._instancePointer = elementClass
+
+      this._instance = elementClass
     }
+    this._renderedElement = element
+    // componentWillMount
+    this._instance.componentWillMount && this._instance.componentWillMount()
 
     // 确保此处的 element 为 Peact element
     const domComponentInstance = new PeactDOMComponent(element);
-    return domComponentInstance.mountComponent(nodeID);
+    const domElement = domComponentInstance.mountComponent(nodeID);
+
+    // triger 监听事件 mountReady
+    // this._instance.componentDidMount && this._instance.componentDidMount()
+     
+    return domElement
   }
 }
 
@@ -146,9 +232,9 @@ const Peact = {
    */
   createClass(sepc) {
     // create a Peact class
-    function ElementClassConstructor(props) {
+    function ElementClass(props) {
       this.props = props
-      initialState.call(this)
+      this.state = this.getInitialState()
     }
     // render 为必须函数
     if (!sepc.render) {
@@ -156,21 +242,24 @@ const Peact = {
       return {};
     }
 
-    ElementClassConstructor.prototype.setState = function(newState) {
+    ElementClass.prototype.getInitialState = function(){
+      return null
+    }
+    ElementClass.prototype.setState = function(newState) {
       this._peactInternalInstance.receiveComponent(null, newState);
     };
-
+    
     // 支持全部方法
     // es6 Object.assign 仅适用浅拷贝
     if (Object.assign) {
-      ElementClassConstructor.prototype = Object.assign(ElementClassConstructor.prototype, sepc)
+      ElementClass.prototype = Object.assign(ElementClass.prototype, sepc)
     }
     // extend 手动支持
     else {
-      ElementClassConstructor.prototype = extend(ElementClassConstructor.prototype, sepc)
+      ElementClass.prototype = extend(ElementClass.prototype, sepc)
     }
 
-    return ElementClassConstructor
+    return ElementClass
   },
 
 }
@@ -194,23 +283,9 @@ const PeactDOM = {
   render(element /* Peact class or Peact element */ , container) {
     const rootID = "peact"
     const componentInstance = PeactDOM.instantiatePeactComponent(element)
-    const component =  componentInstance.mountComponent(rootID);
+    const domElement =  componentInstance.mountComponent(rootID);
 
     // 渲染
-    container.appendChild(component);
+    container.appendChild(domElement);
   }
-}
-
-// es6 支持
-// Peact基础组件
-class Component {
-  constructor() {
-    this.props = {}
-    this.state = {}
-  }
-  // state 设置函数
-  setState() {}
-  // 声明周期函数
-  // ...
-  render() {}
 }

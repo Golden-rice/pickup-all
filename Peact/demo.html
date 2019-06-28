@@ -54,18 +54,35 @@
     // just render
     // PeactDOM.render("this is text", document.body)
 
-    // create a Peact element
+    // create a Peact class
+    const MyClick = Peact.createClass({
+      // state 声明
+      getInitialState() {
+        return { count: 0 };
+      },
+      handleClick(){
+        const { count } = this.state
+        console.log('count:', count)
+        this.setState({
+          count: count+1
+        })
+      },
+      render() {
+        const { count } = this.state
+        return Peact.createElement( 'a', {
+          onClick: this.handleClick
+        }, "count:" + count );
+      }
+    })
     let MyH3 = Peact.createElement(
       "div", null, 
-      Peact.createElement("h3", null, "this is inner child!")
+      MyClick
     )
     PeactDOM.render(
       MyH3,
       document.body
     )
 
-    // extend class
-    class App extends Component {}
   </script>
 </body>
 
