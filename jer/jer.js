@@ -102,6 +102,9 @@ jer.fn = jer.prototype = {
 	},
 	isNumber: function(dom){
 		return jer.fn._isType('Number')(dom);
+  },
+  isBoolean: function(dom){
+		return jer.fn._isType('Boolean')(dom);
 	},
 	isObject: function(dom){
 		return jer.fn._isType('Object')(dom);

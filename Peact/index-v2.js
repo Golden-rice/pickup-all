@@ -1,7 +1,7 @@
 // [reactjs源码分析-下篇（更新机制实现原理）](https://github.com/purplebamboo/blog/issues/3)
 // [reactjs源码分析-上篇（首次渲染实现原理）](https://github.com/purplebamboo/blog/issues/2)
 // [React 源码解析](https://react.jokcy.me/)
-
+// [React源码解析(一):组件的实现与挂载](https://juejin.im/post/5983dfbcf265da3e2f7f32de)
 
 const extend = Util.extend || function(){}
 
@@ -206,7 +206,15 @@ class PeactCompositeComponentWrapper {
   }
 }
 
+// ReactComponent
+function ReactComponent(props, context, updater){
+    this.props = props
+    this.context = context
+    this.updater = updater || ReactNoopUpdateQueue;
+}
 
+ReactComponent.prototype.setState = function(){}
+ReactComponent.prototype.forceUpdate = function(){}
 
 class Component {}
 class PureComponent {}
@@ -238,17 +246,11 @@ const PeactDOM = {
 }
 
 const PeactClass = {
-  /**
-   * 创造 Peact class
-   * @param {*} sepc   Peact class 声明
-   */
   createClass(sepc) {
-    // create a Peact class
     function ElementClass(props) {
       this.props = props
       this.state = this.getInitialState()
     }
-    // render 为必须函数
     if (!sepc.render) {
       console.error("Required render function!")
       return {};
@@ -269,12 +271,7 @@ const PeactClass = {
 
 // Peact 实现
 const Peact = {
-  /**
-   * 创造 Peact element 
-   * @param {*} type      (String) dom 类型
-   * @param {*} props     (Object) Peact element 属性
-   * @param {*} children  (Peact element or Dom or Basic type) 子节点 
-   */
+
   createElement(type, config, children) {
     /* create a Peact element */
     function Element(type, key, props) {
@@ -286,23 +283,11 @@ const Peact = {
 
     let props = extend({}, config)
 
-    // 支持不定参数，并均合并至 children 中
-    var childrenLength = arguments.length - 2;
-    if (childrenLength === 1) {
-      props.children = Array.isArray(children) ? children : [children];
-    } else if (childrenLength > 1) {
-      var childArray = [];
-      for (var i = 0; i < childrenLength; i++) {
-        childArray[i] = arguments[i + 2];
-      }
-      props.children = childArray;
-    }
-
     return new Element(type, null, props)
   },
   createClass: PeactClass.createClass,
   // 提供 props.children 工具集
   Children: {},
-  Component: Component,
+  Component: ReactComponent,
   PureComponent: PureComponent
 }

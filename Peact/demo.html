@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,46 +10,80 @@
   <script src="./index.js"></script>
   <title>Peact Demo</title>
 </head>
+
 <body>
   <script>
-    function notThis(){
+    function notThis() {
       console.log(this)
     }
     // create a Peact class
     const MyPeactClass = Peact.createClass({
-      test(){
+      test() {
         console.log("this is test")
         console.log('this is THIS pointer: ', this)
         console.log('this is PROPS: ', this.props)
-        console.log('this is STATE: ',this.state)
+        console.log('this is STATE: ', this.state)
       },
       say: notThis,
-      render(){
-        this.props = { msg: "Hi!" }
+      render() {
+        this.props = {
+          msg: "Hi!"
+        }
         // this.test()
         // this.say()
-        return Peact.createElement('h1', { 
-          onClick: function(){
+        return Peact.createElement('h1', {
+          onClick: function () {
             alert("Hi!")
           }
-        }, this.props.msg );
+        }, this.props.msg);
       }
     })
 
-    Peact.render(
+    PeactDOM.render(
       MyPeactClass,
       document.body
     )
 
     // create a Peact element
     let MyDiv = Peact.createElement("div", null, "this is a div")
-    Peact.render(
-      MyDiv,
+    // PeactDOM.render(
+    //   MyDiv,
+    //   document.body
+    // )
+
+    // just render
+    // PeactDOM.render("this is text", document.body)
+
+    // create a Peact class
+    const MyClick = Peact.createClass({
+      // state 声明
+      getInitialState() {
+        return { count: 0 };
+      },
+      handleClick(){
+        const { count } = this.state
+        console.log('count:', count)
+        this.setState({
+          count: count+1
+        })
+      },
+      render() {
+        const { count } = this.state
+        return Peact.createElement( 'a', {
+          onClick: this.handleClick
+        }, "count:" + count );
+      }
+    })
+    let MyH3 = Peact.createElement(
+      "div", null, 
+      MyClick
+    )
+    PeactDOM.render(
+      MyH3,
       document.body
     )
 
-    // just render
-    Peact.render("this is text", document.body)
   </script>
 </body>
+
 </html>

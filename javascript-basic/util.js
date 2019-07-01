@@ -8,13 +8,13 @@
   
   const isObject = DONT_HAVE_J ? function(o){
     return Object.prototype.toString.call(o) === '[object Object]';
-  } : j.isObject;
+  } : j.fn.isObject;
   const isArray  = DONT_HAVE_J ? function(o){
     return Object.prototype.toString.call(o) === '[object Array]';
-  } : j.isArray;
+  } : j.fn.isArray;
   const isBoolean  = DONT_HAVE_J ? function(o){
     return Object.prototype.toString.call(o) === '[object Boolean]';
-  } : j.isBoolean;
+  } : j.fn.isBoolean;
 
   /** 组合函数
    *  @param function a  有返回值的函数，参数、返回值的数据类型和x一直
@@ -83,6 +83,9 @@
         } else {
             destination = source
         }
+    }
+    if( destination === null ){
+      return {}
     }
     return destination
   }
